@@ -56,13 +56,48 @@ export const LoginPage = () => {
         alignItems: 'center',
         justifyContent: 'center',
         px: 2,
-        background:
-          mode === 'dark'
-            ? 'linear-gradient(135deg, #0f1c22 0%, #14262e 50%, #0f2127 100%)'
-            : 'linear-gradient(135deg, #e8f3f6 0%, #f8fbfc 50%, #dfeff1 100%)'
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundImage: `url('/login-background.webp')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          background:
+            mode === 'dark'
+              ? 'linear-gradient(135deg, rgba(8, 18, 24, 0.82) 0%, rgba(13, 32, 40, 0.76) 50%, rgba(8, 24, 29, 0.86) 100%)'
+              : 'linear-gradient(135deg, rgba(232, 243, 246, 0.76) 0%, rgba(248, 251, 252, 0.66) 50%, rgba(217, 236, 239, 0.78) 100%)'
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          background:
+            mode === 'dark'
+              ? 'radial-gradient(circle at top right, rgba(77, 182, 172, 0.15), transparent 38%)'
+              : 'radial-gradient(circle at top right, rgba(31, 111, 139, 0.14), transparent 38%)'
+        }
       }}
     >
-      <Card sx={{ width: '100%', maxWidth: 460 }}>
+      <Card
+        sx={{
+          width: '100%',
+          maxWidth: 460,
+          position: 'relative',
+          zIndex: 1,
+          backdropFilter: 'blur(12px)',
+          bgcolor: mode === 'dark' ? 'rgba(22, 38, 45, 0.82)' : 'rgba(255, 255, 255, 0.84)',
+          border: '1px solid',
+          borderColor: mode === 'dark' ? 'rgba(172, 205, 214, 0.12)' : 'rgba(31, 111, 139, 0.08)',
+          boxShadow:
+            mode === 'dark'
+              ? '0 24px 64px rgba(0, 0, 0, 0.34)'
+              : '0 24px 64px rgba(31, 111, 139, 0.16)'
+        }}
+      >
         <CardContent sx={{ p: 4 }}>
           <Stack spacing={3}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
