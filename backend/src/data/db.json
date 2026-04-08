@@ -1,0 +1,80 @@
+{
+  "users": [
+    {
+      "_id": "d4000117-d23b-4532-a929-00054caf2c94",
+      "fullName": "Clinic Administrator",
+      "email": "admin@clinic.local",
+      "password": "$2b$10$Gq4.vvlrWqmuBTy/g0oak.Lwifzj4bmJF53mLPlUAgRart.Tp232u",
+      "role": "admin",
+      "createdAt": "2026-04-08T14:32:37.301Z",
+      "updatedAt": "2026-04-08T14:32:37.301Z"
+    }
+  ],
+  "patients": [
+    {
+      "_id": "92d2f9cb-b7ba-4dd8-84b3-0fb49519a677",
+      "fullName": "Nora Hassan",
+      "phone": "+972501234567",
+      "age": 34,
+      "gender": "female",
+      "address": "12 Olive Street",
+      "condition": "Lower back pain",
+      "notes": "Works desk job, symptoms worsen after long sitting.",
+      "lastVisit": "2026-04-08T14:32:37.301Z",
+      "createdAt": "2026-04-08T14:32:37.301Z",
+      "updatedAt": "2026-04-08T14:32:37.301Z"
+    },
+    {
+      "_id": "fe15c6a6-9ed2-40b1-afc5-d77a1c01eaf3",
+      "fullName": "Omar Khalil",
+      "phone": "+972509876543",
+      "age": 46,
+      "gender": "male",
+      "address": "88 Palm Avenue",
+      "condition": "Post knee surgery rehabilitation",
+      "notes": "Twice-weekly follow-up sessions.",
+      "lastVisit": "2026-04-06T14:32:37.301Z",
+      "createdAt": "2026-04-08T14:32:37.301Z",
+      "updatedAt": "2026-04-08T14:32:37.301Z"
+    },
+    {
+      "_id": "27776018-45db-4a87-a5fb-6ed3feb3f95d",
+      "fullName": "Lina Saeed",
+      "phone": "+972522220001",
+      "age": 29,
+      "gender": "female",
+      "address": "4 Cedar Road",
+      "condition": "Neck strain",
+      "notes": "Improving with posture correction plan.",
+      "lastVisit": null,
+      "createdAt": "2026-04-08T14:32:37.301Z",
+      "updatedAt": "2026-04-08T14:32:37.301Z"
+    }
+  ],
+  "reports": [
+    {
+      "_id": "a971694b-1718-4057-b9a7-b121f1577371",
+      "patientId": "92d2f9cb-b7ba-4dd8-84b3-0fb49519a677",
+      "date": "2026-04-08T14:32:37.301Z",
+      "diagnosis": "Mechanical lower back pain with mild muscle spasm",
+      "treatmentPlan": "Stretching, manual therapy, core strengthening sessions twice weekly",
+      "sessionNotes": "Patient tolerated treatment well and reported reduced stiffness.",
+      "progress": "improving",
+      "attachments": [],
+      "createdAt": "2026-04-08T14:32:37.301Z",
+      "updatedAt": "2026-04-08T14:32:37.301Z"
+    },
+    {
+      "_id": "339bd7fe-ae11-4434-90fa-cae743ea1ec8",
+      "patientId": "fe15c6a6-9ed2-40b1-afc5-d77a1c01eaf3",
+      "date": "2026-04-06T14:32:37.301Z",
+      "diagnosis": "Post-operative knee stiffness",
+      "treatmentPlan": "ROM work, gait training, quadriceps activation",
+      "sessionNotes": "Flexion improved by 5 degrees compared to previous visit.",
+      "progress": "stable",
+      "attachments": [],
+      "createdAt": "2026-04-08T14:32:37.301Z",
+      "updatedAt": "2026-04-08T14:32:37.301Z"
+    }
+  ]
+}

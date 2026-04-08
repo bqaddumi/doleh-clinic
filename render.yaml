@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: doleh-clinic-api
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: pnpm install --no-frozen-lockfile
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: ADMIN_EMAIL
+        value: admin@clinic.local
+      - key: ADMIN_PASSWORD
+        value: Admin123!
+      - key: CLIENT_URL
+        sync: false
