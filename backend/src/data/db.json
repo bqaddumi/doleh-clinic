@@ -1,18 +1,18 @@
 {
   "users": [
     {
-      "_id": "d4000117-d23b-4532-a929-00054caf2c94",
+      "_id": "dcb2dd7b-c80b-4939-a20a-d161df56766b",
       "fullName": "Clinic Administrator",
       "email": "admin@clinic.local",
-      "password": "$2b$10$Gq4.vvlrWqmuBTy/g0oak.Lwifzj4bmJF53mLPlUAgRart.Tp232u",
+      "password": "$2b$10$YZmFeF461W9gMB8V8576UuPSkJ9rph8sIlfEfkNfwEyinaGCdX1aa",
       "role": "admin",
-      "createdAt": "2026-04-08T14:32:37.301Z",
-      "updatedAt": "2026-04-08T14:32:37.301Z"
+      "createdAt": "2026-04-08T17:00:49.049Z",
+      "updatedAt": "2026-04-08T17:00:49.049Z"
     }
   ],
   "patients": [
     {
-      "_id": "92d2f9cb-b7ba-4dd8-84b3-0fb49519a677",
+      "_id": "3f64051c-4dc8-4d8c-8274-518cb7e42013",
       "fullName": "Nora Hassan",
       "phone": "+972501234567",
       "age": 34,
@@ -20,12 +20,12 @@
       "address": "12 Olive Street",
       "condition": "Lower back pain",
       "notes": "Works desk job, symptoms worsen after long sitting.",
-      "lastVisit": "2026-04-08T14:32:37.301Z",
-      "createdAt": "2026-04-08T14:32:37.301Z",
-      "updatedAt": "2026-04-08T14:32:37.301Z"
+      "lastVisit": "2026-04-08T17:00:49.049Z",
+      "createdAt": "2026-04-08T17:00:49.049Z",
+      "updatedAt": "2026-04-08T17:00:49.049Z"
     },
     {
-      "_id": "fe15c6a6-9ed2-40b1-afc5-d77a1c01eaf3",
+      "_id": "c5d6d20c-371e-4b05-8e43-412bd11c8f00",
       "fullName": "Omar Khalil",
       "phone": "+972509876543",
       "age": 46,
@@ -33,12 +33,12 @@
       "address": "88 Palm Avenue",
       "condition": "Post knee surgery rehabilitation",
       "notes": "Twice-weekly follow-up sessions.",
-      "lastVisit": "2026-04-06T14:32:37.301Z",
-      "createdAt": "2026-04-08T14:32:37.301Z",
-      "updatedAt": "2026-04-08T14:32:37.301Z"
+      "lastVisit": "2026-04-06T17:00:49.049Z",
+      "createdAt": "2026-04-08T17:00:49.049Z",
+      "updatedAt": "2026-04-08T17:00:49.049Z"
     },
     {
-      "_id": "27776018-45db-4a87-a5fb-6ed3feb3f95d",
+      "_id": "2705abc4-1751-40b8-9097-d05028510325",
       "fullName": "Lina Saeed",
       "phone": "+972522220001",
       "age": 29,
@@ -47,34 +47,34 @@
       "condition": "Neck strain",
       "notes": "Improving with posture correction plan.",
       "lastVisit": null,
-      "createdAt": "2026-04-08T14:32:37.301Z",
-      "updatedAt": "2026-04-08T14:32:37.301Z"
+      "createdAt": "2026-04-08T17:00:49.049Z",
+      "updatedAt": "2026-04-08T17:00:49.049Z"
     }
   ],
   "reports": [
     {
-      "_id": "a971694b-1718-4057-b9a7-b121f1577371",
-      "patientId": "92d2f9cb-b7ba-4dd8-84b3-0fb49519a677",
-      "date": "2026-04-08T14:32:37.301Z",
+      "_id": "f6ed40f2-bca1-4e06-9c3c-db7df8b8ecfe",
+      "patientId": "3f64051c-4dc8-4d8c-8274-518cb7e42013",
+      "date": "2026-04-08T17:00:49.049Z",
       "diagnosis": "Mechanical lower back pain with mild muscle spasm",
       "treatmentPlan": "Stretching, manual therapy, core strengthening sessions twice weekly",
       "sessionNotes": "Patient tolerated treatment well and reported reduced stiffness.",
       "progress": "improving",
       "attachments": [],
-      "createdAt": "2026-04-08T14:32:37.301Z",
-      "updatedAt": "2026-04-08T14:32:37.301Z"
+      "createdAt": "2026-04-08T17:00:49.049Z",
+      "updatedAt": "2026-04-08T17:00:49.049Z"
     },
     {
-      "_id": "339bd7fe-ae11-4434-90fa-cae743ea1ec8",
-      "patientId": "fe15c6a6-9ed2-40b1-afc5-d77a1c01eaf3",
-      "date": "2026-04-06T14:32:37.301Z",
+      "_id": "91753cb0-87e0-46d1-982b-77f0b5ce1918",
+      "patientId": "c5d6d20c-371e-4b05-8e43-412bd11c8f00",
+      "date": "2026-04-06T17:00:49.049Z",
       "diagnosis": "Post-operative knee stiffness",
       "treatmentPlan": "ROM work, gait training, quadriceps activation",
       "sessionNotes": "Flexion improved by 5 degrees compared to previous visit.",
       "progress": "stable",
       "attachments": [],
-      "createdAt": "2026-04-08T14:32:37.301Z",
-      "updatedAt": "2026-04-08T14:32:37.301Z"
+      "createdAt": "2026-04-08T17:00:49.049Z",
+      "updatedAt": "2026-04-08T17:00:49.049Z"
     }
   ]
 }
