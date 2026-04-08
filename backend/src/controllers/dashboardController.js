@@ -1,4 +1,4 @@
-import { getDashboardStats as getDashboardStatsData } from '../services/fileDatabase.js';
+import { getDashboardStats as getDashboardStatsData } from '../services/dataService.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getDashboardStats = asyncHandler(async (req, res) => {

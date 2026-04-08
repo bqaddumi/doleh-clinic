@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
-import { findUserByEmail, findUserById, sanitizeUser } from '../services/fileDatabase.js';
+import { findUserByEmail, findUserById, sanitizeUser } from '../services/dataService.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 

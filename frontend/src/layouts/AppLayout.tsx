@@ -25,7 +25,7 @@ export const AppLayout = () => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, direction } = useLanguage();
   const { mode, toggleMode } = useThemeMode();
   const navigationItems = [
     { label: t('common.dashboard'), to: '/' },
@@ -53,11 +53,26 @@ export const AppLayout = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-        <Toolbar sx={{ gap: 2 }}>
+        <Toolbar
+          sx={{
+            gap: 2,
+            flexWrap: { xs: 'wrap', lg: 'nowrap' },
+            justifyContent: 'space-between'
+          }}
+        >
           <IconButton sx={{ display: { md: 'none' } }} onClick={() => setDrawerOpen(true)}>
             <MenuIcon />
           </IconButton>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1, minWidth: 0 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              flexGrow: 1,
+              minWidth: 0,
+              justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start'
+            }}
+          >
             <Box
               component="img"
               src="/doleh-clinic-logo.jpg"
@@ -76,27 +91,42 @@ export const AppLayout = () => {
               {t('common.appName')}
             </Typography>
           </Box>
-          <Typography color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-            {user?.fullName}
-          </Typography>
-          <Button color="inherit" startIcon={mode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />} onClick={toggleMode}>
-            {mode === 'light' ? t('common.darkMode') : t('common.lightMode')}
-          </Button>
-          <Button
-            color="inherit"
-            onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-          >
-            {language === 'en' ? t('common.arabic') : t('common.english')}
-          </Button>
-          <Button
-            color="inherit"
-            onClick={async () => {
-              logout();
-              await navigate({ to: '/login' });
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: direction === 'rtl' ? 'flex-start' : 'flex-end',
+              flexWrap: 'wrap',
+              gap: 1,
+              width: { xs: '100%', lg: 'auto' }
             }}
           >
-            {t('common.logout')}
-          </Button>
+            <Typography color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+              {user?.fullName}
+            </Typography>
+            <Button
+              color="inherit"
+              startIcon={mode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
+              onClick={toggleMode}
+            >
+              {mode === 'light' ? t('common.darkMode') : t('common.lightMode')}
+            </Button>
+            <Button
+              color="inherit"
+              onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+            >
+              {language === 'en' ? t('common.arabic') : t('common.english')}
+            </Button>
+            <Button
+              color="inherit"
+              onClick={async () => {
+                logout();
+                await navigate({ to: '/login' });
+              }}
+            >
+              {t('common.logout')}
+            </Button>
+          </Box>
         </Toolbar>
       </AppBar>
 
@@ -105,7 +135,7 @@ export const AppLayout = () => {
       </Drawer>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '240px 1fr' }, gap: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: direction === 'rtl' ? '1fr 240px' : '240px 1fr' }, gap: 3 }}>
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>{navContent}</Box>
           <Outlet />
         </Box>

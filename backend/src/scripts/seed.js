@@ -1,6 +1,7 @@
-import { seedDatabase } from '../services/fileDatabase.js';
+import { initializeStorage, seedDatabase } from '../services/dataService.js';
 
 const seed = async () => {
+  await initializeStorage();
   await seedDatabase();
   console.log('Seed completed successfully');
   process.exit(0);

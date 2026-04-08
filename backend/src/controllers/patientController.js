@@ -4,7 +4,7 @@ import {
   getPatientById as getPatientRecord,
   listPatients,
   updatePatient as updatePatientRecord
-} from '../services/fileDatabase.js';
+} from '../services/dataService.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 

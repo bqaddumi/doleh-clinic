@@ -1,10 +1,12 @@
 import app from '../src/app.js';
+import { initializeStorage } from '../src/services/dataService.js';
 import { ensureAdminUser } from '../src/services/bootstrapAdmin.js';
 
 let initialized = false;
 
 const initialize = async () => {
   if (!initialized) {
+    await initializeStorage();
     await ensureAdminUser();
     initialized = true;
   }

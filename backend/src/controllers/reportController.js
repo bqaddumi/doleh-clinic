@@ -2,10 +2,11 @@ import {
   createReport as createReportRecord,
   deleteReport as deleteReportRecord,
   getReportById as getReportRecord,
+  hasPatient,
+  hasReport,
   listReports,
-  readDb,
   updateReport as updateReportRecord
-} from '../services/fileDatabase.js';
+} from '../services/dataService.js';
 import { ApiError } from '../utils/ApiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
@@ -22,10 +23,7 @@ export const getReports = asyncHandler(async (req, res) => {
 
 export const createReport = asyncHandler(async (req, res) => {
   const payload = normalizeReportPayload(req.validated.body);
-  const db = await readDb();
-  const patientExists = db.patients.some((patient) => patient._id === payload.patientId);
-
-  if (!patientExists) {
+  if (!(await hasPatient(payload.patientId))) {
     throw new ApiError(404, 'Patient not found');
   }
 
@@ -44,15 +42,11 @@ export const getReportById = asyncHandler(async (req, res) => {
 
 export const updateReport = asyncHandler(async (req, res) => {
   const payload = normalizeReportPayload(req.validated.body);
-  const db = await readDb();
-  const reportExists = db.reports.some((report) => report._id === req.validated.params.id);
-  const patientExists = db.patients.some((patient) => patient._id === payload.patientId);
-
-  if (!reportExists) {
+  if (!(await hasReport(req.validated.params.id))) {
     throw new ApiError(404, 'Report not found');
   }
 
-  if (!patientExists) {
+  if (!(await hasPatient(payload.patientId))) {
     throw new ApiError(404, 'Patient not found');
   }
 

@@ -48,7 +48,7 @@ const StatCard = ({
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, direction } = useLanguage();
   const { data, isLoading, isError, error } = useDashboardStats();
 
   if (isLoading) {
@@ -65,7 +65,14 @@ export const DashboardPage = () => {
         title={t('common.dashboard')}
         subtitle={t('dashboardPage.subtitle')}
         action={
-          <Stack direction="row" spacing={1}>
+          <Stack
+            direction="row"
+            sx={{
+              flexWrap: 'wrap',
+              gap: 1,
+              justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start'
+            }}
+          >
             <Button
               variant="contained"
               startIcon={<AddIcon />}

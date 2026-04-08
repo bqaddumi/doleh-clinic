@@ -1,1 +1,1 @@
-export { ensureAdminUser } from './fileDatabase.js';
+export { ensureAdminUser } from './dataService.js';

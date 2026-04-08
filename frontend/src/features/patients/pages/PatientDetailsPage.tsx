@@ -19,7 +19,7 @@ import { usePatientDetails } from '../api';
 
 export const PatientDetailsPage = ({ patientId }: { patientId: string }) => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, direction } = useLanguage();
   const { data, isLoading, isError, error } = usePatientDetails(patientId);
 
   if (isLoading) {
@@ -38,7 +38,14 @@ export const PatientDetailsPage = ({ patientId }: { patientId: string }) => {
         title={patient.fullName}
         subtitle={t('patientsPage.patientSubtitle', { condition: patient.condition })}
         action={
-          <Stack direction="row" spacing={1}>
+          <Stack
+            direction="row"
+            sx={{
+              flexWrap: 'wrap',
+              gap: 1,
+              justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start'
+            }}
+          >
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -91,12 +98,21 @@ export const PatientDetailsPage = ({ patientId }: { patientId: string }) => {
                         direction={{ xs: 'column', sm: 'row' }}
                         justifyContent="space-between"
                         spacing={2}
+                        sx={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}
                       >
                         <div>
                           <Typography fontWeight={700}>{formatDate(report.date)}</Typography>
                           <Typography color="text.secondary">{report.diagnosis}</Typography>
                         </div>
-                        <Stack direction="row" spacing={1} alignItems="center">
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          sx={{
+                            flexWrap: 'wrap',
+                            gap: 1,
+                            justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start'
+                          }}
+                        >
                           <Chip label={t(`common.${report.progress}` as const)} color="primary" variant="outlined" />
                           <Button
                             onClick={() =>

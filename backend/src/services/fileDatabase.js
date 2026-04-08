@@ -28,6 +28,10 @@ const ensureDataFile = async () => {
   }
 };
 
+export const initializeStorage = async () => {
+  await ensureDataFile();
+};
+
 export const readDb = async () => {
   await ensureDataFile();
   const content = await readFile(dataFilePath, 'utf8');
@@ -204,6 +208,11 @@ export const deletePatient = async (patientId) => {
   return true;
 };
 
+export const hasPatient = async (patientId) => {
+  const db = await readDb();
+  return db.patients.some((item) => item._id === patientId);
+};
+
 const populateReportPatient = (report, patients, fields = ['_id', 'fullName', 'phone', 'condition']) => {
   const patient = patients.find((item) => item._id === report.patientId);
 
@@ -363,6 +372,11 @@ export const deleteReport = async (reportId) => {
 
   await writeDb(db);
   return true;
+};
+
+export const hasReport = async (reportId) => {
+  const db = await readDb();
+  return db.reports.some((item) => item._id === reportId);
 };
 
 export const getDashboardStats = async () => {
