@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
+import { randomUUID } from 'node:crypto';
 import { connectDatabase } from '../config/db.js';
 import { env } from '../config/env.js';
 import { Patient } from '../models/Patient.js';
@@ -7,6 +8,7 @@ import { Report } from '../models/Report.js';
 import { User } from '../models/User.js';
 
 let connectionPromise;
+let gridFsBucket;
 
 const ensureConnection = async () => {
   if (mongoose.connection.readyState === 1) {
@@ -18,6 +20,12 @@ const ensureConnection = async () => {
   }
 
   await connectionPromise;
+
+  if (!gridFsBucket) {
+    gridFsBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: 'attachments'
+    });
+  }
 };
 
 const toPlain = (value) => {
@@ -399,4 +407,64 @@ export const seedDatabase = async () => {
       attachments: []
     }
   ]);
+};
+
+export const saveUploadedFiles = async (files, baseUrl) => {
+  await ensureConnection();
+
+  const uploaded = await Promise.all(
+    files.map(
+      (file) =>
+        new Promise((resolve, reject) => {
+          const fileId = new mongoose.Types.ObjectId();
+          const uploadStream = gridFsBucket.openUploadStreamWithId(fileId, `${randomUUID()}-${file.originalname}`, {
+            contentType: file.mimetype,
+            metadata: {
+              originalName: file.originalname
+            }
+          });
+
+          uploadStream.on('error', reject);
+          uploadStream.on('finish', () =>
+            resolve({
+              id: String(fileId),
+              filename: file.originalname,
+              contentType: file.mimetype,
+              size: file.size,
+              url: `${baseUrl}/api/uploads/${String(fileId)}`
+            })
+          );
+
+          uploadStream.end(file.buffer);
+        })
+    )
+  );
+
+  return uploaded;
+};
+
+export const getUploadStream = async (fileId) => {
+  await ensureConnection();
+
+  if (!mongoose.Types.ObjectId.isValid(fileId)) {
+    return null;
+  }
+
+  const files = await mongoose.connection.db
+    .collection('attachments.files')
+    .find({ _id: new mongoose.Types.ObjectId(fileId) })
+    .limit(1)
+    .toArray();
+
+  if (!files.length) {
+    return null;
+  }
+
+  const file = files[0];
+
+  return {
+    filename: file.metadata?.originalName || file.filename,
+    contentType: file.contentType,
+    stream: gridFsBucket.openDownloadStream(new mongoose.Types.ObjectId(fileId))
+  };
 };

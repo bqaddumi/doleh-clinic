@@ -5,6 +5,7 @@ import authRoutes from './routes/authRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import patientRoutes from './routes/patientRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import { protect } from './middleware/authMiddleware.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { env } from './config/env.js';
@@ -29,6 +30,7 @@ export const createApp = () => {
   app.use('/api/dashboard', protect, dashboardRoutes);
   app.use('/api/patients', protect, patientRoutes);
   app.use('/api/reports', protect, reportRoutes);
+  app.use('/api/uploads', uploadRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

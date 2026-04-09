@@ -30,6 +30,16 @@ export interface PatientPayload {
   notes?: string;
 }
 
+export const createPatientRequest = async (payload: PatientPayload) => {
+  const response = await api.post<Patient>('/patients', payload);
+  return response.data;
+};
+
+export const updatePatientRequest = async (patientId: string, payload: PatientPayload) => {
+  const response = await api.put<Patient>(`/patients/${patientId}`, payload);
+  return response.data;
+};
+
 export const usePatients = (filters: PatientFilters) =>
   useQuery({
     queryKey: ['patients', filters],
@@ -53,10 +63,7 @@ export const useCreatePatient = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: PatientPayload) => {
-      const response = await api.post<Patient>('/patients', payload);
-      return response.data;
-    },
+    mutationFn: createPatientRequest,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['patients'] });
       void queryClient.invalidateQueries({ queryKey: ['patient'] });
@@ -69,10 +76,7 @@ export const useUpdatePatient = (patientId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: PatientPayload) => {
-      const response = await api.put<Patient>(`/patients/${patientId}`, payload);
-      return response.data;
-    },
+    mutationFn: async (payload: PatientPayload) => updatePatientRequest(patientId, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['patients'] });
       void queryClient.invalidateQueries({ queryKey: ['patient', patientId] });

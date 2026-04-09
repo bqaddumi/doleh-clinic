@@ -25,3 +25,5 @@ export const updateReport = activeStore.updateReport;
 export const deleteReport = activeStore.deleteReport;
 export const getDashboardStats = activeStore.getDashboardStats;
 export const seedDatabase = activeStore.seedDatabase;
+export const saveUploadedFiles = activeStore.saveUploadedFiles;
+export const getUploadStream = activeStore.getUploadStream;

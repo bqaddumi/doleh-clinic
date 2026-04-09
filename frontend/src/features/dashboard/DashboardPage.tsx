@@ -66,17 +66,24 @@ export const DashboardPage = () => {
         subtitle={t('dashboardPage.subtitle')}
         action={
           <Stack
-            direction="row"
             sx={{
-              flexWrap: 'wrap',
-              gap: 1,
-              justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start'
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, minmax(0, 1fr))',
+                lg: 'repeat(2, max-content)'
+              },
+              gap: 1.25,
+              width: '100%',
+              justifyContent: { lg: direction === 'rtl' ? 'flex-start' : 'flex-end' }
             }}
           >
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => navigate({ to: '/patients/new' })}
+              size="medium"
+              sx={{ minHeight: 44 }}
             >
               {t('common.addPatient')}
             </Button>
@@ -84,6 +91,8 @@ export const DashboardPage = () => {
               variant="outlined"
               startIcon={<AddIcon />}
               onClick={() => navigate({ to: '/reports/new', search: { patientId: '' } })}
+              size="medium"
+              sx={{ minHeight: 44 }}
             >
               {t('common.addReport')}
             </Button>

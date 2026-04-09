@@ -20,9 +20,27 @@ export interface ReportPayload {
   attachments?: string[];
 }
 
+export const createReportRequest = async (payload: ReportPayload) => {
+  const response = await api.post<Report>('/reports', payload);
+  return response.data;
+};
+
+export const updateReportRequest = async (reportId: string, payload: ReportPayload) => {
+  const response = await api.put<Report>(`/reports/${reportId}`, payload);
+  return response.data;
+};
+
 interface ReportsResponse {
   items: Report[];
   pagination: Pagination;
+}
+
+interface UploadedFile {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  url: string;
 }
 
 export const useReports = (filters: ReportFilters) =>
@@ -48,10 +66,7 @@ export const useCreateReport = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: ReportPayload) => {
-      const response = await api.post<Report>('/reports', payload);
-      return response.data;
-    },
+    mutationFn: createReportRequest,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['reports'] });
       void queryClient.invalidateQueries({ queryKey: ['patients'] });
@@ -65,10 +80,7 @@ export const useUpdateReport = (reportId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: ReportPayload) => {
-      const response = await api.put<Report>(`/reports/${reportId}`, payload);
-      return response.data;
-    },
+    mutationFn: async (payload: ReportPayload) => updateReportRequest(reportId, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['reports'] });
       void queryClient.invalidateQueries({ queryKey: ['report', reportId] });
@@ -94,3 +106,17 @@ export const useDeleteReport = () => {
     }
   });
 };
+
+export const useUploadAttachments = () =>
+  useMutation({
+    mutationFn: async (files: File[]) => {
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append('files', file);
+      }
+
+      const response = await api.post<{ files: UploadedFile[] }>('/uploads', formData);
+
+      return response.data.files;
+    }
+  });

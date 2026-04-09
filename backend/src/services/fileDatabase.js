@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
+import { createReadStream } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dataDirectory = path.resolve(__dirname, '../data');
 const dataFilePath = path.join(dataDirectory, 'db.json');
+const uploadsDirectory = path.resolve(__dirname, '../uploads');
 
 const defaultDb = {
   users: [],
@@ -30,6 +32,7 @@ const ensureDataFile = async () => {
 
 export const initializeStorage = async () => {
   await ensureDataFile();
+  await mkdir(uploadsDirectory, { recursive: true });
 };
 
 export const readDb = async () => {
@@ -528,4 +531,43 @@ export const seedDatabase = async () => {
     patients,
     reports
   });
+};
+
+export const saveUploadedFiles = async (files, baseUrl) => {
+  await mkdir(uploadsDirectory, { recursive: true });
+
+  const uploaded = [];
+
+  for (const file of files) {
+    const extension = path.extname(file.originalname || '');
+    const fileId = `${randomUUID()}${extension}`;
+    const destination = path.join(uploadsDirectory, fileId);
+
+    await writeFile(destination, file.buffer);
+
+    uploaded.push({
+      id: fileId,
+      filename: file.originalname,
+      contentType: file.mimetype,
+      size: file.size,
+      url: `${baseUrl}/api/uploads/${fileId}`
+    });
+  }
+
+  return uploaded;
+};
+
+export const getUploadStream = async (fileId) => {
+  const filePath = path.join(uploadsDirectory, fileId);
+
+  try {
+    await readFile(filePath);
+    return {
+      filename: fileId,
+      contentType: undefined,
+      stream: createReadStream(filePath)
+    };
+  } catch {
+    return null;
+  }
 };

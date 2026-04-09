@@ -1,10 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Box, Button, Grid, MenuItem, Stack, TextField } from '@mui/material';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import { Alert, Box, Button, Chip, Grid, MenuItem, Stack, TextField, Typography } from '@mui/material';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { Patient } from '../../../types';
-import { ReportPayload } from '../api';
+import { ReportPayload, useUploadAttachments } from '../api';
 
 interface ReportFormProps {
   patients: Patient[];
@@ -20,6 +22,7 @@ export const ReportForm = ({
   isSubmitting
 }: ReportFormProps) => {
   const { t } = useLanguage();
+  const [uploadedAttachments, setUploadedAttachments] = useState<string[]>(defaultValues?.attachments || []);
   const schema = z.object({
     patientId: z.string().min(1, t('validation.patientRequired')),
     date: z.string().min(1, t('validation.dateRequired')),
@@ -46,11 +49,23 @@ export const ReportForm = ({
       attachments: defaultValues?.attachmentsText || ''
     }
   });
+  const uploadMutation = useUploadAttachments();
+
+  useEffect(() => {
+    setUploadedAttachments(defaultValues?.attachments || []);
+  }, [defaultValues?.attachments]);
 
   return (
     <Box
       component="form"
       onSubmit={handleSubmit(async (values) => {
+        const manualAttachments = values.attachments
+          ? values.attachments
+              .split('\n')
+              .map((value: string) => value.trim())
+              .filter(Boolean)
+          : [];
+
         await onSubmit({
           patientId: values.patientId,
           date: values.date,
@@ -58,12 +73,7 @@ export const ReportForm = ({
           treatmentPlan: values.treatmentPlan,
           sessionNotes: values.sessionNotes,
           progress: values.progress,
-          attachments: values.attachments
-            ? values.attachments
-                .split('\n')
-                .map((value: string) => value.trim())
-                .filter(Boolean)
-            : []
+          attachments: [...uploadedAttachments, ...manualAttachments]
         });
       })}
     >
@@ -168,6 +178,62 @@ export const ReportForm = ({
               </TextField>
             )}
           />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Stack spacing={1.5}>
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={<UploadFileIcon />}
+              disabled={uploadMutation.isPending}
+            >
+              {uploadMutation.isPending ? t('reportsPage.uploading') : t('reportsPage.uploadFiles')}
+              <input
+                hidden
+                type="file"
+                multiple
+                onChange={async (event) => {
+                  const files = Array.from(event.target.files || []);
+                  if (!files.length) {
+                    return;
+                  }
+
+                  const uploaded = await uploadMutation.mutateAsync(files);
+                  setUploadedAttachments((current) => [
+                    ...current,
+                    ...uploaded.map((file) => file.url)
+                  ]);
+                  event.target.value = '';
+                }}
+              />
+            </Button>
+
+            {uploadMutation.isError ? (
+              <Alert severity="error">
+                {t('reportsPage.uploadFailed')}
+              </Alert>
+            ) : null}
+
+            {uploadedAttachments.length ? (
+              <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                {uploadedAttachments.map((attachment) => (
+                  <Chip
+                    key={attachment}
+                    label={attachment.split('/').pop()}
+                    onDelete={() =>
+                      setUploadedAttachments((current) =>
+                        current.filter((item) => item !== attachment)
+                      )
+                    }
+                  />
+                ))}
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                {t('reportsPage.uploadHint')}
+              </Typography>
+            )}
+          </Stack>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Controller
