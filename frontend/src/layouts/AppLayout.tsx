@@ -57,7 +57,8 @@ export const AppLayout = () => {
           sx={{
             gap: 2,
             flexWrap: { xs: 'wrap', lg: 'nowrap' },
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            flexDirection: direction === 'rtl' ? 'row-reverse' : 'row'
           }}
         >
           <IconButton sx={{ display: { md: 'none' } }} onClick={() => setDrawerOpen(true)}>
@@ -130,14 +131,35 @@ export const AppLayout = () => {
         </Toolbar>
       </AppBar>
 
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ display: { md: 'none' } }}>
+      <Drawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        anchor={direction === 'rtl' ? 'right' : 'left'}
+        sx={{ display: { md: 'none' } }}
+      >
         {navContent}
       </Drawer>
 
       <Container maxWidth="xl" sx={{ py: 4 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: direction === 'rtl' ? '1fr 240px' : '240px 1fr' }, gap: 3 }}>
-          <Box sx={{ display: { xs: 'none', md: 'block' } }}>{navContent}</Box>
-          <Outlet />
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              md: direction === 'rtl' ? 'minmax(0, 1fr) 240px' : '240px minmax(0, 1fr)'
+            },
+            gridTemplateAreas: {
+              xs: '"content"',
+              md: direction === 'rtl' ? '"content sidebar"' : '"sidebar content"'
+            },
+            alignItems: 'start',
+            gap: 3
+          }}
+        >
+          <Box sx={{ display: { xs: 'none', md: 'block' }, gridArea: 'sidebar', minWidth: 0 }}>{navContent}</Box>
+          <Box sx={{ gridArea: 'content', minWidth: 0 }}>
+            <Outlet />
+          </Box>
         </Box>
       </Container>
     </Box>
