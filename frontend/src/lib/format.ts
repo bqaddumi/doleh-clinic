@@ -8,6 +8,14 @@ export const formatDate = (value?: string | null) => {
   return dayjs(value).format('DD MMM YYYY');
 };
 
+export const formatDateTime = (value?: string | null) => {
+  if (!value) {
+    return 'N/A';
+  }
+
+  return dayjs(value).format('DD MMM YYYY, HH:mm');
+};
+
 export const getErrorMessage = (error: unknown) => {
   if (
     typeof error === 'object' &&

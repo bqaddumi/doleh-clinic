@@ -13,8 +13,11 @@ import {
   patientIdSchema,
   updatePatientSchema
 } from '../validators/patientValidators.js';
+import { authorize } from '../middleware/authMiddleware.js';
 
 const router = Router();
+
+router.use(authorize('admin'));
 
 router.get('/', validate(getPatientsSchema), getPatients);
 router.post('/', validate(createPatientSchema), createPatient);

@@ -4,6 +4,8 @@ import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import patientRoutes from './routes/patientRoutes.js';
+import publicReservationRoutes from './routes/publicReservationRoutes.js';
+import reservationRoutes from './routes/reservationRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import { protect } from './middleware/authMiddleware.js';
@@ -27,9 +29,11 @@ export const createApp = () => {
   });
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/public/reservations', publicReservationRoutes);
   app.use('/api/dashboard', protect, dashboardRoutes);
   app.use('/api/patients', protect, patientRoutes);
   app.use('/api/reports', protect, reportRoutes);
+  app.use('/api/reservations', protect, reservationRoutes);
   app.use('/api/uploads', uploadRoutes);
 
   app.use(notFoundHandler);

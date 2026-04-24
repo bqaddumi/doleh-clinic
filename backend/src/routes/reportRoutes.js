@@ -13,8 +13,11 @@ import {
   reportIdSchema,
   updateReportSchema
 } from '../validators/reportValidators.js';
+import { authorize } from '../middleware/authMiddleware.js';
 
 const router = Router();
+
+router.use(authorize('admin'));
 
 router.get('/', validate(getReportsSchema), getReports);
 router.post('/', validate(createReportSchema), createReport);

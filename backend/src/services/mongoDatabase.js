@@ -4,11 +4,21 @@ import { randomUUID } from 'node:crypto';
 import { connectDatabase } from '../config/db.js';
 import { env } from '../config/env.js';
 import { Patient } from '../models/Patient.js';
+import { Reservation } from '../models/Reservation.js';
 import { Report } from '../models/Report.js';
 import { User } from '../models/User.js';
+import { ApiError } from '../utils/ApiError.js';
 
 let connectionPromise;
 let gridFsBucket;
+const RESERVATION_GAP_MINUTES = 45;
+const BUSINESS_DAYS = new Set([0, 1, 2, 3, 4]);
+const SLOT_TIMES = Array.from({ length: 45 }, (_, index) => {
+  const totalMinutes = 8 * 60 + index * 15;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+});
 
 const ensureConnection = async () => {
   if (mongoose.connection.readyState === 1) {
@@ -45,6 +55,149 @@ const toPlain = (value) => {
 };
 
 const sortByDateDesc = (a, b, field) => new Date(b[field]).getTime() - new Date(a[field]).getTime();
+
+const buildTodayReservationsOverview = (reservations) => {
+  const now = new Date();
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const todaysReservations = reservations
+    .filter((reservation) => {
+      const scheduledAt = new Date(reservation.scheduledAt);
+      return scheduledAt >= startOfDay && scheduledAt <= endOfDay && reservation.status !== 'rejected';
+    })
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .map((reservation, index) => ({
+      _id: String(reservation._id),
+      fullName: reservation.fullName,
+      phone: reservation.phone,
+      scheduledAt: reservation.scheduledAt,
+      status: reservation.status,
+      queuePosition: index + 1
+    }));
+
+  const currentSession =
+    todaysReservations.find(
+      (reservation) =>
+        reservation.status === 'accepted' && new Date(reservation.scheduledAt).getTime() <= now.getTime()
+    ) ||
+    todaysReservations.find((reservation) => reservation.status === 'accepted') ||
+    todaysReservations[0] ||
+    null;
+
+  return {
+    currentSession,
+    todaysReservations
+  };
+};
+
+const assertReservationGap = async (scheduledAt, excludeReservationId) => {
+  const requestedAt = new Date(scheduledAt);
+  const gapInMilliseconds = RESERVATION_GAP_MINUTES * 60 * 1000;
+  const from = new Date(requestedAt.getTime() - gapInMilliseconds + 1);
+  const to = new Date(requestedAt.getTime() + gapInMilliseconds - 1);
+
+  const conflictingReservation = await Reservation.findOne({
+    ...(excludeReservationId ? { _id: { $ne: excludeReservationId } } : {}),
+    status: { $ne: 'rejected' },
+    scheduledAt: {
+      $gte: from,
+      $lte: to
+    }
+  });
+
+  if (conflictingReservation) {
+    throw new ApiError(
+      409,
+      `This time is unavailable. Please choose a slot at least ${RESERVATION_GAP_MINUTES} minutes apart from existing reservations.`
+    );
+  }
+};
+
+const getUnavailableTimesForDate = (reservedSlots, dateString) => {
+  const gapMs = RESERVATION_GAP_MINUTES * 60 * 1000;
+  const reservedTimes = reservedSlots.map((slot) => new Date(slot).getTime());
+
+  return new Set(
+    SLOT_TIMES.filter((time) => {
+      const slotDate = new Date(`${dateString}T${time}`);
+      const slotTime = slotDate.getTime();
+      return reservedTimes.some((reservedTime) => Math.abs(reservedTime - slotTime) < gapMs);
+    })
+  );
+};
+
+export const getReservationAvailability = async (dateString) => {
+  await ensureConnection();
+  const selectedDate = new Date(dateString);
+  const startOfDay = new Date(selectedDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(selectedDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const reservations = await Reservation.find({
+    status: { $ne: 'rejected' },
+    scheduledAt: {
+      $gte: startOfDay,
+      $lte: endOfDay
+    }
+  }).sort({ scheduledAt: 1, createdAt: 1 });
+
+  return {
+    gapMinutes: RESERVATION_GAP_MINUTES,
+    reservedSlots: reservations.map((reservation) => reservation.scheduledAt.toISOString())
+  };
+};
+
+export const getReservationDateOptions = async (days) => {
+  await ensureConnection();
+  const options = [];
+  let cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+
+  while (options.length < days) {
+    const isoDate = cursor.toISOString().slice(0, 10);
+    const isBusinessDay = BUSINESS_DAYS.has(cursor.getDay());
+
+    if (!isBusinessDay) {
+      options.push({ date: isoDate, isAvailable: false });
+      cursor.setDate(cursor.getDate() + 1);
+      continue;
+    }
+
+    const startOfDay = new Date(cursor);
+    const endOfDay = new Date(cursor);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const reservations = await Reservation.find({
+      status: { $ne: 'rejected' },
+      scheduledAt: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    }).sort({ scheduledAt: 1, createdAt: 1 });
+
+    const unavailableTimes = getUnavailableTimesForDate(
+      reservations.map((reservation) => reservation.scheduledAt.toISOString()),
+      isoDate
+    );
+
+    options.push({
+      date: isoDate,
+      isAvailable: unavailableTimes.size < SLOT_TIMES.length
+    });
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return {
+    businessDays: [...BUSINESS_DAYS],
+    slotTimes: SLOT_TIMES,
+    options
+  };
+};
 
 export const initializeStorage = async () => {
   await ensureConnection();
@@ -87,6 +240,28 @@ export const ensureAdminUser = async () => {
     password: await bcrypt.hash(env.adminPassword, 10),
     role: 'admin'
   });
+};
+
+export const createUser = async ({ fullName, email, password, role }) => {
+  await ensureConnection();
+  const normalizedEmail = email.toLowerCase();
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  return User.findOneAndUpdate(
+    { email: normalizedEmail },
+    {
+      fullName,
+      email: normalizedEmail,
+      password: hashedPassword,
+      role
+    },
+    {
+      new: true,
+      upsert: true,
+      runValidators: true,
+      setDefaultsOnInsert: true
+    }
+  );
 };
 
 export const listPatients = async ({ search = '', page, limit, sortBy, sortOrder }) => {
@@ -339,9 +514,109 @@ export const getDashboardStats = async () => {
   };
 };
 
+export const listReservations = async ({ user, status, date, page, limit }) => {
+  await ensureConnection();
+  const filter = {};
+
+  if (user.role === 'patient') {
+    filter.userId = user._id;
+  }
+
+  if (status) {
+    filter.status = status;
+  }
+
+  if (date) {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    filter.scheduledAt = {
+      $gte: startOfDay,
+      $lte: endOfDay
+    };
+  }
+
+  const skip = (page - 1) * limit;
+  const [items, total] = await Promise.all([
+    Reservation.find(filter)
+      .populate('userId', 'fullName email role')
+      .sort({ createdAt: -1, scheduledAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Reservation.countDocuments(filter)
+  ]);
+
+  return {
+    items: toPlain(items),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit))
+    }
+  };
+};
+
+export const createReservation = async (payload) => {
+  await ensureConnection();
+  await assertReservationGap(payload.scheduledAt);
+  const reservation = await Reservation.create({
+    userId: payload.userId || null,
+    fullName: payload.fullName,
+    phone: payload.phone,
+    scheduledAt: new Date(payload.scheduledAt),
+    status: 'pending',
+    notes: payload.notes || '',
+    adminNotes: '',
+    reviewedAt: null
+  });
+
+  const populated = await Reservation.findById(reservation._id).populate('userId', 'fullName email role');
+  return toPlain(populated);
+};
+
+export const getReservationById = async (reservationId) => {
+  await ensureConnection();
+  const reservation = await Reservation.findById(reservationId).populate('userId', 'fullName email role');
+  return toPlain(reservation);
+};
+
+export const updateReservationByAdmin = async (reservationId, payload) => {
+  await ensureConnection();
+  await assertReservationGap(payload.scheduledAt, reservationId);
+  const reservation = await Reservation.findByIdAndUpdate(
+    reservationId,
+    {
+      scheduledAt: new Date(payload.scheduledAt),
+      status: payload.status,
+      adminNotes: payload.adminNotes || '',
+      reviewedAt: payload.status === 'pending' ? null : new Date()
+    },
+    {
+      new: true,
+      runValidators: true
+    }
+  ).populate('userId', 'fullName email role');
+
+  return toPlain(reservation);
+};
+
+export const getTodayReservationsOverview = async () => {
+  await ensureConnection();
+  const reservations = await Reservation.find({
+    scheduledAt: {
+      $gte: new Date(new Date().setHours(0, 0, 0, 0)),
+      $lte: new Date(new Date().setHours(23, 59, 59, 999))
+    }
+  }).sort({ scheduledAt: 1, createdAt: 1 });
+
+  return buildTodayReservationsOverview(toPlain(reservations));
+};
+
 export const seedDatabase = async () => {
   await ensureConnection();
-  await Promise.all([User.deleteMany({}), Patient.deleteMany({}), Report.deleteMany({})]);
+  await Promise.all([User.deleteMany({}), Patient.deleteMany({}), Report.deleteMany({}), Reservation.deleteMany({})]);
 
   const now = new Date();
   const firstDate = new Date(now);
@@ -353,6 +628,13 @@ export const seedDatabase = async () => {
     email: env.adminEmail.toLowerCase(),
     password: await bcrypt.hash(env.adminPassword, 10),
     role: 'admin'
+  });
+
+  await User.create({
+    fullName: 'Nora Hassan',
+    email: 'nora.hassan@clinic.local',
+    password: await bcrypt.hash(env.adminPassword, 10),
+    role: 'patient'
   });
 
   const patients = await Patient.insertMany([
@@ -405,6 +687,29 @@ export const seedDatabase = async () => {
       sessionNotes: 'Flexion improved by 5 degrees compared to previous visit.',
       progress: 'stable',
       attachments: []
+    }
+  ]);
+
+  await Reservation.insertMany([
+    {
+      userId: null,
+      fullName: 'Sami Ahmad',
+      phone: '+972599000111',
+      scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0),
+      status: 'accepted',
+      notes: 'First-time consultation',
+      adminNotes: 'Please arrive 10 minutes early',
+      reviewedAt: now
+    },
+    {
+      userId: null,
+      fullName: 'Mona Saleh',
+      phone: '+972599000222',
+      scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 30),
+      status: 'pending',
+      notes: '',
+      adminNotes: '',
+      reviewedAt: null
     }
   ]);
 };

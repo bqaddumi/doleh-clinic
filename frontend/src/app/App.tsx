@@ -19,7 +19,8 @@ const AppRouter = () => {
   const [router] = useState(() =>
     createAppRouter(queryClient, {
       isAuthenticated: auth.isAuthenticated,
-      isLoading: auth.isLoading
+      isLoading: auth.isLoading,
+      userRole: auth.user?.role ?? null
     })
   );
 
@@ -28,14 +29,15 @@ const AppRouter = () => {
       queryClient,
       auth: {
         isAuthenticated: auth.isAuthenticated,
-        isLoading: auth.isLoading
+        isLoading: auth.isLoading,
+        userRole: auth.user?.role ?? null
       }
     }
   });
 
   useEffect(() => {
     void router.invalidate();
-  }, [auth.isAuthenticated, auth.isLoading, router]);
+  }, [auth.isAuthenticated, auth.isLoading, auth.user?.role, router]);
 
   return <RouterProvider router={router} />;
 };

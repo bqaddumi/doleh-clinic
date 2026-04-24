@@ -27,11 +27,14 @@ export const AppLayout = () => {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { language, setLanguage, t, direction } = useLanguage();
   const { mode, toggleMode } = useThemeMode();
-  const navigationItems = [
-    { label: t('common.dashboard'), to: '/' },
-    { label: t('common.patients'), to: '/patients' },
-    { label: t('common.reports'), to: '/reports' }
-  ] as const;
+  const navigationItems = user?.role === 'admin'
+    ? [
+        { label: t('common.dashboard'), to: '/dashboard' },
+        { label: t('common.patients'), to: '/patients' },
+        { label: t('common.reports'), to: '/reports' },
+        { label: t('common.reservations'), to: '/reservations' }
+      ]
+    : [{ label: t('common.reservations'), to: '/reservations' }] as const;
 
   const navContent = (
     <List sx={{ minWidth: 220 }}>

@@ -1,12 +1,45 @@
 export type Gender = 'male' | 'female';
 export type ProgressStatus = 'improving' | 'stable' | 'worse';
+export type UserRole = 'admin' | 'patient';
+export type ReservationStatus = 'pending' | 'accepted' | 'rejected';
 
 export interface User {
   _id?: string;
   id: string;
   fullName: string;
   email: string;
-  role: 'admin';
+  role: UserRole;
+}
+
+export interface Reservation {
+  _id: string;
+  userId:
+    | string
+    | null
+    | {
+        _id: string;
+        fullName: string;
+        email: string;
+        role: UserRole;
+      };
+  fullName: string;
+  phone: string;
+  scheduledAt: string;
+  status: ReservationStatus;
+  notes?: string;
+  adminNotes?: string;
+  reviewedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TodayReservationQueueItem {
+  _id: string;
+  fullName: string;
+  phone: string;
+  scheduledAt: string;
+  status: ReservationStatus;
+  queuePosition: number;
 }
 
 export interface Patient {

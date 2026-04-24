@@ -18,7 +18,7 @@ interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (payload: LoginPayload) => Promise<void>;
+  login: (payload: LoginPayload) => Promise<User>;
   logout: () => void;
 }
 
@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('auth_token', response.data.token);
         setToken(response.data.token);
         setUser(response.data.user);
+        return response.data.user;
       },
       logout: () => {
         localStorage.removeItem('auth_token');

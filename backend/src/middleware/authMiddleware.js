@@ -27,3 +27,36 @@ export const protect = asyncHandler(async (req, res, next) => {
     throw new ApiError(401, 'Invalid or expired token');
   }
 });
+
+export const authorize =
+  (...roles) =>
+  (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return next(new ApiError(403, 'Not authorized'));
+    }
+
+    return next();
+  };
+
+export const attachUserIfPresent = asyncHandler(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader?.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, env.jwtSecret);
+    const user = await findUserById(decoded.id);
+
+    if (user) {
+      req.user = sanitizeUser(user);
+    }
+  } catch {
+    // Ignore invalid optional auth and continue as guest.
+  }
+
+  return next();
+});

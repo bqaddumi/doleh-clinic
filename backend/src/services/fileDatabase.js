@@ -5,6 +5,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { env } from '../config/env.js';
+import { ApiError } from '../utils/ApiError.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,10 +16,19 @@ const uploadsDirectory = path.resolve(__dirname, '../uploads');
 const defaultDb = {
   users: [],
   patients: [],
-  reports: []
+  reports: [],
+  reservations: []
 };
 
 const sortByDateDesc = (a, b, field) => new Date(b[field]).getTime() - new Date(a[field]).getTime();
+const RESERVATION_GAP_MINUTES = 45;
+const BUSINESS_DAYS = new Set([0, 1, 2, 3, 4]);
+const SLOT_TIMES = Array.from({ length: 45 }, (_, index) => {
+  const totalMinutes = 8 * 60 + index * 15;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+});
 
 const ensureDataFile = async () => {
   await mkdir(dataDirectory, { recursive: true });
@@ -89,6 +99,33 @@ export const ensureAdminUser = async () => {
   };
 
   db.users.push(user);
+  await writeDb(db);
+  return user;
+};
+
+export const createUser = async ({ fullName, email, password, role }) => {
+  const db = await readDb();
+  const now = new Date().toISOString();
+  const normalizedEmail = email.toLowerCase();
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const existingIndex = db.users.findIndex((user) => user.email === normalizedEmail);
+
+  const user = {
+    _id: existingIndex >= 0 ? db.users[existingIndex]._id : randomUUID(),
+    fullName,
+    email: normalizedEmail,
+    password: hashedPassword,
+    role,
+    createdAt: existingIndex >= 0 ? db.users[existingIndex].createdAt : now,
+    updatedAt: now
+  };
+
+  if (existingIndex >= 0) {
+    db.users[existingIndex] = user;
+  } else {
+    db.users.push(user);
+  }
+
   await writeDb(db);
   return user;
 };
@@ -441,6 +478,259 @@ export const getDashboardStats = async () => {
   };
 };
 
+const populateReservationUser = (reservation, users) => {
+  const user = users.find((item) => item._id === reservation.userId);
+
+  if (!user) {
+    return reservation;
+  }
+
+  return {
+    ...reservation,
+    userId: {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role
+    }
+  };
+};
+
+const buildTodayReservationsOverview = (reservations) => {
+  const now = new Date();
+  const startOfDay = new Date(now);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(now);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const todaysReservations = reservations
+    .filter((reservation) => {
+      const scheduledAt = new Date(reservation.scheduledAt);
+      return scheduledAt >= startOfDay && scheduledAt <= endOfDay && reservation.status !== 'rejected';
+    })
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .map((reservation, index) => ({
+      _id: reservation._id,
+      fullName: reservation.fullName,
+      phone: reservation.phone,
+      scheduledAt: reservation.scheduledAt,
+      status: reservation.status,
+      queuePosition: index + 1
+    }));
+
+  const currentSession =
+    todaysReservations.find(
+      (reservation) =>
+        reservation.status === 'accepted' && new Date(reservation.scheduledAt).getTime() <= now.getTime()
+    ) ||
+    todaysReservations.find((reservation) => reservation.status === 'accepted') ||
+    todaysReservations[0] ||
+    null;
+
+  return {
+    currentSession,
+    todaysReservations
+  };
+};
+
+const assertReservationGap = (reservations, scheduledAt, excludeReservationId) => {
+  const requestedTime = new Date(scheduledAt).getTime();
+  const gapInMilliseconds = RESERVATION_GAP_MINUTES * 60 * 1000;
+
+  const conflictingReservation = reservations.find((reservation) => {
+    if (reservation._id === excludeReservationId || reservation.status === 'rejected') {
+      return false;
+    }
+
+    const reservationTime = new Date(reservation.scheduledAt).getTime();
+    return Math.abs(reservationTime - requestedTime) < gapInMilliseconds;
+  });
+
+  if (conflictingReservation) {
+    throw new ApiError(
+      409,
+      `This time is unavailable. Please choose a slot at least ${RESERVATION_GAP_MINUTES} minutes apart from existing reservations.`
+    );
+  }
+};
+
+const getUnavailableTimesForDate = (reservations, dateString) => {
+  const selectedDate = new Date(dateString);
+  const reservedTimes = reservations
+    .filter((reservation) => {
+      if (reservation.status === 'rejected') {
+        return false;
+      }
+
+      const scheduledAt = new Date(reservation.scheduledAt);
+      return scheduledAt.toDateString() === selectedDate.toDateString();
+    })
+    .map((reservation) => new Date(reservation.scheduledAt).getTime());
+  const gapMs = RESERVATION_GAP_MINUTES * 60 * 1000;
+
+  return new Set(
+    SLOT_TIMES.filter((time) => {
+      const slotDate = new Date(`${dateString}T${time}`);
+      const slotTime = slotDate.getTime();
+      return reservedTimes.some((reservedTime) => Math.abs(reservedTime - slotTime) < gapMs);
+    })
+  );
+};
+
+export const getReservationAvailability = async (dateString) => {
+  const db = await readDb();
+  const selectedDate = new Date(dateString);
+  const startOfDay = new Date(selectedDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(selectedDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const reservedSlots = db.reservations
+    .filter((reservation) => {
+      if (reservation.status === 'rejected') {
+        return false;
+      }
+
+      const scheduledAt = new Date(reservation.scheduledAt);
+      return scheduledAt >= startOfDay && scheduledAt <= endOfDay;
+    })
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .map((reservation) => reservation.scheduledAt);
+
+  return {
+    gapMinutes: RESERVATION_GAP_MINUTES,
+    reservedSlots
+  };
+};
+
+export const getReservationDateOptions = async (days) => {
+  const db = await readDb();
+  const options = [];
+  let cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+
+  while (options.length < days) {
+    const isoDate = cursor.toISOString().slice(0, 10);
+    const isBusinessDay = BUSINESS_DAYS.has(cursor.getDay());
+    const unavailableTimes = isBusinessDay ? getUnavailableTimesForDate(db.reservations, isoDate) : new Set(SLOT_TIMES);
+
+    options.push({
+      date: isoDate,
+      isAvailable: isBusinessDay && unavailableTimes.size < SLOT_TIMES.length
+    });
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return {
+    businessDays: [...BUSINESS_DAYS],
+    slotTimes: SLOT_TIMES,
+    options
+  };
+};
+
+export const listReservations = async ({ user, status, date, page, limit }) => {
+  const db = await readDb();
+  let items = db.reservations.filter((reservation) => {
+    if (user.role === 'patient' && reservation.userId !== user._id) {
+      return false;
+    }
+
+    if (status && reservation.status !== status) {
+      return false;
+    }
+
+    if (date) {
+      const reservationDate = new Date(reservation.scheduledAt).toISOString().slice(0, 10);
+      if (reservationDate !== date) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  items = items.sort((a, b) => sortByDateDesc(a, b, 'createdAt'));
+
+  const total = items.length;
+  const start = (page - 1) * limit;
+
+  return {
+    items: items.slice(start, start + limit).map((reservation) => populateReservationUser(reservation, db.users)),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit))
+    }
+  };
+};
+
+export const createReservation = async (payload) => {
+  const db = await readDb();
+  const now = new Date().toISOString();
+
+  assertReservationGap(db.reservations, payload.scheduledAt);
+
+  const reservation = {
+    _id: randomUUID(),
+    userId: payload.userId || null,
+    fullName: payload.fullName,
+    phone: payload.phone,
+    scheduledAt: new Date(payload.scheduledAt).toISOString(),
+    status: 'pending',
+    notes: payload.notes || '',
+    adminNotes: '',
+    reviewedAt: null,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  db.reservations.push(reservation);
+  await writeDb(db);
+  return populateReservationUser(reservation, db.users);
+};
+
+export const getReservationById = async (reservationId) => {
+  const db = await readDb();
+  const reservation = db.reservations.find((item) => item._id === reservationId);
+
+  if (!reservation) {
+    return null;
+  }
+
+  return populateReservationUser(reservation, db.users);
+};
+
+export const updateReservationByAdmin = async (reservationId, payload) => {
+  const db = await readDb();
+  const index = db.reservations.findIndex((item) => item._id === reservationId);
+
+  if (index === -1) {
+    return null;
+  }
+
+  assertReservationGap(db.reservations, payload.scheduledAt, reservationId);
+
+  const updated = {
+    ...db.reservations[index],
+    scheduledAt: new Date(payload.scheduledAt).toISOString(),
+    status: payload.status,
+    adminNotes: payload.adminNotes || '',
+    reviewedAt: payload.status === 'pending' ? null : new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  db.reservations[index] = updated;
+  await writeDb(db);
+  return populateReservationUser(updated, db.users);
+};
+
+export const getTodayReservationsOverview = async () => {
+  const db = await readDb();
+  return buildTodayReservationsOverview(db.reservations);
+};
+
 export const seedDatabase = async () => {
   const now = new Date();
   const firstDate = new Date(now);
@@ -526,10 +816,47 @@ export const seedDatabase = async () => {
         role: 'admin',
         createdAt: now.toISOString(),
         updatedAt: now.toISOString()
+      },
+      {
+        _id: randomUUID(),
+        fullName: 'Nora Hassan',
+        email: 'nora.hassan@clinic.local',
+        password: adminPassword,
+        role: 'patient',
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString()
       }
     ],
     patients,
-    reports
+    reports,
+    reservations: [
+      {
+        _id: randomUUID(),
+        userId: null,
+        fullName: 'Sami Ahmad',
+        phone: '+972599000111',
+        scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0).toISOString(),
+        status: 'accepted',
+        notes: 'First-time consultation',
+        adminNotes: 'Please arrive 10 minutes early',
+        reviewedAt: now.toISOString(),
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString()
+      },
+      {
+        _id: randomUUID(),
+        userId: null,
+        fullName: 'Mona Saleh',
+        phone: '+972599000222',
+        scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 30).toISOString(),
+        status: 'pending',
+        notes: '',
+        adminNotes: '',
+        reviewedAt: null,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString()
+      }
+    ]
   });
 };
 

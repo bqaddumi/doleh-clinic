@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { serveUpload, uploadFiles } from '../controllers/uploadController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { authorize, protect } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
@@ -14,6 +14,6 @@ const upload = multer({
 });
 
 router.get('/:id', serveUpload);
-router.post('/', protect, upload.array('files', 5), uploadFiles);
+router.post('/', protect, authorize('admin'), upload.array('files', 5), uploadFiles);
 
 export default router;
