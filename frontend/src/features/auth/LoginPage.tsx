@@ -86,7 +86,7 @@ export const LoginPage = () => {
       <Stack
         direction={{ xs: 'column', lg: 'row' }}
         spacing={3}
-        sx={{ width: '100%', maxWidth: 980, position: 'relative', zIndex: 1 }}
+        sx={{ width: '100%', maxWidth: 500, position: 'relative', zIndex: 1 }}
       >
         <Card
           sx={{
@@ -175,28 +175,6 @@ export const LoginPage = () => {
             <Button size="large" variant="contained" onClick={onSubmit} disabled={isSubmitting}>
               {isSubmitting ? t('common.signingIn') : t('common.login')}
             </Button>
-            </Stack>
-          </CardContent>
-        </Card>
-        <Card
-          sx={{
-            flex: 1,
-            minWidth: 0,
-            backdropFilter: 'blur(12px)',
-            bgcolor: mode === 'dark' ? 'rgba(22, 38, 45, 0.82)' : 'rgba(255, 255, 255, 0.84)',
-            border: '1px solid',
-            borderColor: mode === 'dark' ? 'rgba(172, 205, 214, 0.12)' : 'rgba(31, 111, 139, 0.08)',
-            boxShadow:
-              mode === 'dark'
-                ? '0 24px 64px rgba(0, 0, 0, 0.34)'
-                : '0 24px 64px rgba(31, 111, 139, 0.16)'
-          }}
-        >
-          <CardContent sx={{ p: 4 }}>
-            <Stack spacing={3}>
-              <Typography variant="h4">{t('landingPage.reserveTitle')}</Typography>
-              <Typography color="text.secondary">{t('landingPage.reserveSubtitle')}</Typography>
-              <PublicReservationForm compact />
             </Stack>
           </CardContent>
         </Card>

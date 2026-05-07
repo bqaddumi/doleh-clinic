@@ -191,6 +191,7 @@ export const ReportForm = ({
               <input
                 hidden
                 type="file"
+                accept="image/*,application/pdf"
                 multiple
                 onChange={async (event) => {
                   const files = Array.from(event.target.files || []);

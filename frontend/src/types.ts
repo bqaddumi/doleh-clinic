@@ -24,6 +24,7 @@ export interface Reservation {
       };
   fullName: string;
   phone: string;
+  age?: number;
   scheduledAt: string;
   status: ReservationStatus;
   notes?: string;
@@ -37,6 +38,7 @@ export interface TodayReservationQueueItem {
   _id: string;
   fullName: string;
   phone: string;
+  age?: number;
   scheduledAt: string;
   status: ReservationStatus;
   queuePosition: number;

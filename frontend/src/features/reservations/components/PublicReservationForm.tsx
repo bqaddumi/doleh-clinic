@@ -1,5 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Alert, Button, MenuItem, Stack, TextField } from '@mui/material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { Alert, Box, Button, IconButton, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useLanguage } from '../../../hooks/useLanguage';
@@ -13,16 +15,28 @@ interface PublicReservationFormProps {
   onSuccess?: () => void;
 }
 
+const formatDateValue = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const parseDateValue = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const getMonthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
+
 export const PublicReservationForm = ({ compact = false, mode = 'public', onSuccess }: PublicReservationFormProps) => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const publicCreateReservation = usePublicCreateReservation();
   const adminCreateReservation = useCreateReservation();
   const createReservation = mode === 'admin' ? adminCreateReservation : publicCreateReservation;
   const [selectedDate, setSelectedDate] = useState('');
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const schema = z.object({
     fullName: z.string().min(2, t('validation.nameRequired')),
     phone: z.string().min(6, t('validation.phoneRequired')),
+    age: z.number().int().min(0, t('validation.ageRequired')).max(120),
     scheduledAt: z.string().min(1, t('validation.dateRequired')),
     notes: z.string().max(2000).optional()
   });
@@ -34,12 +48,48 @@ export const PublicReservationForm = ({ compact = false, mode = 'public', onSucc
     defaultValues: {
       fullName: '',
       phone: '',
+      age: 0,
       scheduledAt: '',
       notes: ''
     }
   });
 
   const timeOptions = useMemo(() => dateOptionsQuery.data?.slotTimes || [], [dateOptionsQuery.data?.slotTimes]);
+  const dateOptions = useMemo(() => dateOptionsQuery.data?.options || [], [dateOptionsQuery.data?.options]);
+  const availableDateSet = useMemo(() => new Set(dateOptions.filter((option) => option.isAvailable).map((option) => option.date)), [dateOptions]);
+  const optionDateSet = useMemo(() => new Set(dateOptions.map((option) => option.date)), [dateOptions]);
+  const firstOptionMonth = useMemo(() => (dateOptions[0]?.date ? parseDateValue(dateOptions[0].date) : null), [dateOptions]);
+  const lastOptionMonth = useMemo(
+    () => (dateOptions[dateOptions.length - 1]?.date ? parseDateValue(dateOptions[dateOptions.length - 1].date) : null),
+    [dateOptions]
+  );
+  const isPreviousMonthDisabled = firstOptionMonth ? getMonthKey(calendarMonth) <= getMonthKey(firstOptionMonth) : true;
+  const isNextMonthDisabled = false;
+
+  const weekdayLabels = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(language === 'ar' ? 'ar' : 'en', { weekday: 'short' });
+    return Array.from({ length: 7 }, (_, index) => formatter.format(new Date(2024, 0, index + 7)));
+  }, [language]);
+
+  const calendarDays = useMemo(() => {
+    const monthStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
+    const gridStart = new Date(monthStart);
+    gridStart.setDate(monthStart.getDate() - monthStart.getDay());
+
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(gridStart);
+      date.setDate(gridStart.getDate() + index);
+      const value = formatDateValue(date);
+
+      return {
+        date,
+        value,
+        isCurrentMonth: date.getMonth() === calendarMonth.getMonth(),
+        isAvailable: availableDateSet.has(value),
+        isSelectable: optionDateSet.has(value) && availableDateSet.has(value)
+      };
+    });
+  }, [availableDateSet, calendarMonth, optionDateSet]);
 
   const unavailableTimes = useMemo(() => {
     if (!selectedDate || !availabilityQuery.data) {
@@ -69,6 +119,14 @@ export const PublicReservationForm = ({ compact = false, mode = 'public', onSucc
       form.setValue('scheduledAt', '');
     }
   }, [form, selectedDate]);
+
+  useEffect(() => {
+    const monthDate = selectedDate ? parseDateValue(selectedDate) : firstOptionMonth;
+
+    if (monthDate) {
+      setCalendarMonth(new Date(monthDate.getFullYear(), monthDate.getMonth(), 1));
+    }
+  }, [firstOptionMonth, selectedDate]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     try {
@@ -113,28 +171,102 @@ export const PublicReservationForm = ({ compact = false, mode = 'public', onSucc
         )}
       />
       <Controller
+        name="age"
+        control={form.control}
+        render={({ field }) => (
+          <TextField
+            {...field}
+            type="number"
+            label={t('common.age')}
+            value={field.value}
+            onChange={(event) => field.onChange(Number(event.target.value))}
+            error={Boolean(form.formState.errors.age)}
+            helperText={form.formState.errors.age?.message}
+            slotProps={{ htmlInput: { min: 0, max: 120 } }}
+            fullWidth
+          />
+        )}
+      />
+      <Controller
         name="scheduledAt"
         control={form.control}
         render={({ field }) => (
           <Stack spacing={2}>
-            <TextField
-              select
-              label={t('common.date')}
-              value={selectedDate}
-              onChange={(event) => {
-                const value = event.target.value;
-                setSelectedDate(value);
-                field.onChange('');
+            <Box
+              sx={{
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 2,
+                p: 1.5
               }}
-              helperText={t('reservationsPage.dateAvailabilityHint')}
-              fullWidth
             >
-              {(dateOptionsQuery.data?.options || []).map((option) => (
-                <MenuItem key={option.date} value={option.date} disabled={!option.isAvailable}>
-                  {option.date}
-                </MenuItem>
-              ))}
-            </TextField>
+              <Stack spacing={1.25}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Typography variant="subtitle2">{t('common.date')}</Typography>
+                  <Stack direction="row" alignItems="center" spacing={0.5}>
+                    <IconButton
+                      size="small"
+                      aria-label="Previous month"
+                      onClick={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}
+                      disabled={isPreviousMonthDisabled}
+                    >
+                      <ChevronLeftIcon fontSize="small" />
+                    </IconButton>
+                    <Typography variant="body2" fontWeight={700} sx={{ minWidth: 128, textAlign: 'center' }}>
+                      {new Intl.DateTimeFormat(language === 'ar' ? 'ar' : 'en', { month: 'long', year: 'numeric' }).format(calendarMonth)}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      aria-label="Next month"
+                      onClick={() => setCalendarMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}
+                      disabled={isNextMonthDisabled}
+                    >
+                      <ChevronRightIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+                    gap: 0.2
+                  }}
+                >
+                  {weekdayLabels.map((day) => (
+                    <Typography key={day} variant="caption" color="text.secondary" textAlign="left" fontWeight={700}>
+                      {day}
+                    </Typography>
+                  ))}
+                  {calendarDays.map((day) => (
+                    <Button
+                      key={day.value}
+                      variant={selectedDate === day.value ? 'contained' : 'text'}
+                      color={selectedDate === day.value ? 'primary' : 'inherit'}
+                      size="small"
+                      disabled={!day.isSelectable || dateOptionsQuery.isLoading}
+                      onClick={() => {
+                        setSelectedDate(day.value);
+                        field.onChange('');
+                      }}
+                      sx={{
+                        width:"30px",
+                        height:"30px",
+                        minWidth: 0,
+                        aspectRatio: '1 / 1',
+                        p: 0,
+                        color: day.isCurrentMonth ? undefined : 'text.disabled',
+                        fontWeight: selectedDate === day.value ? 800 : 600
+                      }}
+                    >
+                      {day.date.getDate()}
+                    </Button>
+                  ))}
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  {t('reservationsPage.dateAvailabilityHint')}
+                </Typography>
+              </Stack>
+            </Box>
             <TextField
               select
               label={t('common.time')}
@@ -148,7 +280,8 @@ export const PublicReservationForm = ({ compact = false, mode = 'public', onSucc
               fullWidth
               disabled={!selectedDate || availabilityQuery.isLoading}
             >
-              {timeOptions.map((time) => (
+              {timeOptions.map((time) =>!unavailableTimes.has(time) && (
+                
                 <MenuItem key={time} value={time} disabled={unavailableTimes.has(time)}>
                   {time}
                 </MenuItem>

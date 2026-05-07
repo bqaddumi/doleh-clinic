@@ -12,6 +12,7 @@ export interface ReservationFilters {
 export interface ReservationPayload {
   fullName: string;
   phone: string;
+  age: number;
   scheduledAt: string;
   notes?: string;
 }
@@ -135,6 +136,9 @@ export const useUpdateReservationByAdmin = () => {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['reservations'] });
+      void queryClient.invalidateQueries({ queryKey: ['public-reservations-today'] });
+      void queryClient.invalidateQueries({ queryKey: ['patients'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     }
   });
 };

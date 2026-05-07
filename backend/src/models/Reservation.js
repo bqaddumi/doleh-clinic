@@ -17,6 +17,12 @@ const reservationSchema = new mongoose.Schema(
       required: true,
       trim: true
     },
+    age: {
+      type: Number,
+      min: 0,
+      max: 120,
+      default: 0
+    },
     scheduledAt: {
       type: Date,
       required: true

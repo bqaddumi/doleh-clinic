@@ -3,6 +3,7 @@ import { z } from 'zod';
 const reservationBody = z.object({
   fullName: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(6).max(30),
+  age: z.coerce.number().int().min(0).max(120),
   scheduledAt: z.string().min(1),
   notes: z.string().trim().max(2000).optional().or(z.literal(''))
 });

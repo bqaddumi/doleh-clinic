@@ -20,6 +20,53 @@ const SLOT_TIMES = Array.from({ length: 45 }, (_, index) => {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 });
 
+const formatLocalDate = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const parseLocalDate = (dateString) => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const buildPatientFromReservation = (reservation) => ({
+  fullName: reservation.fullName?.trim(),
+  phone: reservation.phone?.trim(),
+  age: Number.isFinite(Number(reservation.age)) ? Number(reservation.age) : 0,
+  gender: 'male',
+  address: '',
+  condition: 'New reservation patient',
+  notes: reservation.notes || '',
+  lastVisit: null
+});
+
+const createPatientFromAcceptedReservation = async (reservation) => {
+  const patientPayload = buildPatientFromReservation(reservation);
+
+  if (!patientPayload.fullName || !patientPayload.phone) {
+    return;
+  }
+
+  const existingPatient = await Patient.findOne({ phone: patientPayload.phone });
+
+  if (existingPatient) {
+    return;
+  }
+
+  await Patient.create(patientPayload);
+};
+
+const ensurePatientsForAcceptedReservations = async () => {
+  const acceptedReservations = await Reservation.find({ status: 'accepted' }).sort({ createdAt: 1 });
+
+  for (const reservation of acceptedReservations) {
+    try {
+      await createPatientFromAcceptedReservation(reservation);
+    } catch (error) {
+      console.warn(`Failed to sync accepted reservation ${reservation._id} to patient`, error);
+    }
+  }
+};
+
 const ensureConnection = async () => {
   if (mongoose.connection.readyState === 1) {
     return;
@@ -73,6 +120,7 @@ const buildTodayReservationsOverview = (reservations) => {
       _id: String(reservation._id),
       fullName: reservation.fullName,
       phone: reservation.phone,
+      age: reservation.age,
       scheduledAt: reservation.scheduledAt,
       status: reservation.status,
       queuePosition: index + 1
@@ -119,11 +167,17 @@ const assertReservationGap = async (scheduledAt, excludeReservationId) => {
 const getUnavailableTimesForDate = (reservedSlots, dateString) => {
   const gapMs = RESERVATION_GAP_MINUTES * 60 * 1000;
   const reservedTimes = reservedSlots.map((slot) => new Date(slot).getTime());
+  const now = new Date();
 
   return new Set(
     SLOT_TIMES.filter((time) => {
       const slotDate = new Date(`${dateString}T${time}`);
       const slotTime = slotDate.getTime();
+
+      if (slotDate <= now) {
+        return true;
+      }
+
       return reservedTimes.some((reservedTime) => Math.abs(reservedTime - slotTime) < gapMs);
     })
   );
@@ -131,7 +185,7 @@ const getUnavailableTimesForDate = (reservedSlots, dateString) => {
 
 export const getReservationAvailability = async (dateString) => {
   await ensureConnection();
-  const selectedDate = new Date(dateString);
+  const selectedDate = parseLocalDate(dateString);
   const startOfDay = new Date(selectedDate);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(selectedDate);
@@ -158,7 +212,7 @@ export const getReservationDateOptions = async (days) => {
   cursor.setHours(0, 0, 0, 0);
 
   while (options.length < days) {
-    const isoDate = cursor.toISOString().slice(0, 10);
+    const isoDate = formatLocalDate(cursor);
     const isBusinessDay = BUSINESS_DAYS.has(cursor.getDay());
 
     if (!isBusinessDay) {
@@ -266,6 +320,8 @@ export const createUser = async ({ fullName, email, password, role }) => {
 
 export const listPatients = async ({ search = '', page, limit, sortBy, sortOrder }) => {
   await ensureConnection();
+  await ensurePatientsForAcceptedReservations();
+
   const filter = search
     ? {
         $or: [
@@ -565,6 +621,7 @@ export const createReservation = async (payload) => {
     userId: payload.userId || null,
     fullName: payload.fullName,
     phone: payload.phone,
+    age: payload.age,
     scheduledAt: new Date(payload.scheduledAt),
     status: 'pending',
     notes: payload.notes || '',
@@ -598,6 +655,10 @@ export const updateReservationByAdmin = async (reservationId, payload) => {
       runValidators: true
     }
   ).populate('userId', 'fullName email role');
+
+  if (reservation && payload.status === 'accepted') {
+    await createPatientFromAcceptedReservation(reservation);
+  }
 
   return toPlain(reservation);
 };
@@ -695,6 +756,7 @@ export const seedDatabase = async () => {
       userId: null,
       fullName: 'Sami Ahmad',
       phone: '+972599000111',
+      age: 38,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0),
       status: 'accepted',
       notes: 'First-time consultation',
@@ -705,6 +767,7 @@ export const seedDatabase = async () => {
       userId: null,
       fullName: 'Mona Saleh',
       phone: '+972599000222',
+      age: 31,
       scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 30),
       status: 'pending',
       notes: '',

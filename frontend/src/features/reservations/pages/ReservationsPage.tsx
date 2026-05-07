@@ -205,6 +205,9 @@ export const ReservationsPage = () => {
                           <Typography variant="caption" color="text.secondary">
                             {row.phone}
                           </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {t('common.age')}: {row.age ?? t('common.notAvailable')}
+                          </Typography>
                         </Stack>
                       )
                     },

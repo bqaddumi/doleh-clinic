@@ -9,6 +9,7 @@
     "start": "node src/server.js",
     "build": "node -e \"console.log('Backend build step complete')\"",
     "seed": "node src/scripts/seed.js",
+    "clear-patients": "node src/scripts/clearPatients.js",
     "create-user": "node src/scripts/createUser.js"
   },
   "dependencies": {

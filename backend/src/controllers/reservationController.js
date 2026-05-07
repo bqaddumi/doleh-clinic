@@ -13,6 +13,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 const normalizePatientPayload = (body) => ({
   fullName: body.fullName,
   phone: body.phone,
+  age: body.age,
   scheduledAt: body.scheduledAt,
   notes: body.notes || ''
 });

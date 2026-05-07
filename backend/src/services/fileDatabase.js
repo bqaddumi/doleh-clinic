@@ -30,6 +30,58 @@ const SLOT_TIMES = Array.from({ length: 45 }, (_, index) => {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 });
 
+const formatLocalDate = (date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const parseLocalDate = (dateString) => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+const buildPatientFromReservation = (reservation, now) => ({
+  _id: randomUUID(),
+  fullName: reservation.fullName?.trim(),
+  phone: reservation.phone?.trim(),
+  age: Number.isFinite(Number(reservation.age)) ? Number(reservation.age) : 0,
+  gender: 'male',
+  address: '',
+  condition: 'New reservation patient',
+  notes: reservation.notes || '',
+  lastVisit: null,
+  createdAt: now,
+  updatedAt: now
+});
+
+const createPatientFromAcceptedReservation = (db, reservation, now) => {
+  const patient = buildPatientFromReservation(reservation, now);
+
+  if (!patient.fullName || !patient.phone) {
+    return;
+  }
+
+  const hasExistingPatient = db.patients.some((existingPatient) => existingPatient.phone === patient.phone);
+
+  if (!hasExistingPatient) {
+    db.patients.push(patient);
+  }
+};
+
+const ensurePatientsForAcceptedReservations = async () => {
+  const db = await readDb();
+  const now = new Date().toISOString();
+  const initialCount = db.patients.length;
+
+  db.reservations
+    .filter((reservation) => reservation.status === 'accepted')
+    .forEach((reservation) => createPatientFromAcceptedReservation(db, reservation, now));
+
+  if (db.patients.length > initialCount) {
+    await writeDb(db);
+  }
+
+  return db;
+};
+
 const ensureDataFile = async () => {
   await mkdir(dataDirectory, { recursive: true });
 
@@ -131,7 +183,7 @@ export const createUser = async ({ fullName, email, password, role }) => {
 };
 
 export const listPatients = async ({ search = '', page, limit, sortBy, sortOrder }) => {
-  const db = await readDb();
+  const db = await ensurePatientsForAcceptedReservations();
   const query = search.trim().toLowerCase();
 
   let items = db.patients.filter((patient) => {
@@ -140,7 +192,7 @@ export const listPatients = async ({ search = '', page, limit, sortBy, sortOrder
     }
 
     return [patient.fullName, patient.phone, patient.condition].some((value) =>
-      value.toLowerCase().includes(query)
+      String(value || '').toLowerCase().includes(query)
     );
   });
 
@@ -513,6 +565,7 @@ const buildTodayReservationsOverview = (reservations) => {
       _id: reservation._id,
       fullName: reservation.fullName,
       phone: reservation.phone,
+      age: reservation.age,
       scheduledAt: reservation.scheduledAt,
       status: reservation.status,
       queuePosition: index + 1
@@ -567,11 +620,17 @@ const getUnavailableTimesForDate = (reservations, dateString) => {
     })
     .map((reservation) => new Date(reservation.scheduledAt).getTime());
   const gapMs = RESERVATION_GAP_MINUTES * 60 * 1000;
+  const now = new Date();
 
   return new Set(
     SLOT_TIMES.filter((time) => {
       const slotDate = new Date(`${dateString}T${time}`);
       const slotTime = slotDate.getTime();
+
+      if (slotDate <= now) {
+        return true;
+      }
+
       return reservedTimes.some((reservedTime) => Math.abs(reservedTime - slotTime) < gapMs);
     })
   );
@@ -579,7 +638,7 @@ const getUnavailableTimesForDate = (reservations, dateString) => {
 
 export const getReservationAvailability = async (dateString) => {
   const db = await readDb();
-  const selectedDate = new Date(dateString);
+  const selectedDate = parseLocalDate(dateString);
   const startOfDay = new Date(selectedDate);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(selectedDate);
@@ -610,7 +669,7 @@ export const getReservationDateOptions = async (days) => {
   cursor.setHours(0, 0, 0, 0);
 
   while (options.length < days) {
-    const isoDate = cursor.toISOString().slice(0, 10);
+    const isoDate = formatLocalDate(cursor);
     const isBusinessDay = BUSINESS_DAYS.has(cursor.getDay());
     const unavailableTimes = isBusinessDay ? getUnavailableTimesForDate(db.reservations, isoDate) : new Set(SLOT_TIMES);
 
@@ -677,6 +736,7 @@ export const createReservation = async (payload) => {
     userId: payload.userId || null,
     fullName: payload.fullName,
     phone: payload.phone,
+    age: payload.age,
     scheduledAt: new Date(payload.scheduledAt).toISOString(),
     status: 'pending',
     notes: payload.notes || '',
@@ -712,16 +772,22 @@ export const updateReservationByAdmin = async (reservationId, payload) => {
 
   assertReservationGap(db.reservations, payload.scheduledAt, reservationId);
 
+  const now = new Date().toISOString();
   const updated = {
     ...db.reservations[index],
     scheduledAt: new Date(payload.scheduledAt).toISOString(),
     status: payload.status,
     adminNotes: payload.adminNotes || '',
-    reviewedAt: payload.status === 'pending' ? null : new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    reviewedAt: payload.status === 'pending' ? null : now,
+    updatedAt: now
   };
 
   db.reservations[index] = updated;
+
+  if (payload.status === 'accepted') {
+    createPatientFromAcceptedReservation(db, updated, now);
+  }
+
   await writeDb(db);
   return populateReservationUser(updated, db.users);
 };
@@ -835,6 +901,7 @@ export const seedDatabase = async () => {
         userId: null,
         fullName: 'Sami Ahmad',
         phone: '+972599000111',
+        age: 38,
         scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 0).toISOString(),
         status: 'accepted',
         notes: 'First-time consultation',
@@ -848,6 +915,7 @@ export const seedDatabase = async () => {
         userId: null,
         fullName: 'Mona Saleh',
         phone: '+972599000222',
+        age: 31,
         scheduledAt: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 10, 30).toISOString(),
         status: 'pending',
         notes: '',

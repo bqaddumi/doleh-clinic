@@ -5,11 +5,23 @@ import { authorize, protect } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
+const allowedMimeTypes = new Set(['application/pdf']);
+
+const isAllowedUpload = (file) => file.mimetype.startsWith('image/') || allowedMimeTypes.has(file.mimetype);
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024,
     files: 5
+  },
+  fileFilter: (_req, file, callback) => {
+    if (!isAllowedUpload(file)) {
+      callback(new Error('Only image and PDF files are allowed'));
+      return;
+    }
+
+    callback(null, true);
   }
 });
 
