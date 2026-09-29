@@ -10,6 +10,7 @@ import {
 } from '@tanstack/react-router';
 import { LoginPage } from '../features/auth/LoginPage';
 import { LandingPage } from '../features/landing/LandingPage';
+import { BannersPage } from '../features/banners/pages/BannersPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { PatientDetailsPage } from '../features/patients/pages/PatientDetailsPage';
 import { PatientFormPage } from '../features/patients/pages/PatientFormPage';
@@ -173,6 +174,17 @@ const reservationsRoute = createRoute({
   component: ReservationsPage
 });
 
+const bannersRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: '/banners',
+  beforeLoad: ({ context }) => {
+    if (context.auth.userRole !== 'admin') {
+      throw redirect({ to: '/reservations' });
+    }
+  },
+  component: BannersPage
+});
+
 const newReportRoute = createRoute({
   getParentRoute: () => protectedRoute,
   path: '/reports/new',
@@ -220,6 +232,7 @@ const routeTree = rootRoute.addChildren([
     editPatientRoute,
     reportsRoute,
     reservationsRoute,
+    bannersRoute,
     newReportRoute,
     reportDetailsRoute,
     editReportRoute

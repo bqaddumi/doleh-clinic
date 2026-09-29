@@ -2,8 +2,10 @@ import cors from 'cors';
 import express from 'express';
 import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
+import bannerRoutes from './routes/bannerRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import patientRoutes from './routes/patientRoutes.js';
+import publicBannerRoutes from './routes/publicBannerRoutes.js';
 import publicReservationRoutes from './routes/publicReservationRoutes.js';
 import reservationRoutes from './routes/reservationRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
@@ -30,8 +32,10 @@ export const createApp = () => {
 
   app.use('/api/auth', authRoutes);
   app.use('/api/public/reservations', publicReservationRoutes);
+  app.use('/api/public/banners', publicBannerRoutes);
   app.use('/api/dashboard', protect, dashboardRoutes);
   app.use('/api/patients', protect, patientRoutes);
+  app.use('/api/banners', protect, bannerRoutes);
   app.use('/api/reports', protect, reportRoutes);
   app.use('/api/reservations', protect, reservationRoutes);
   app.use('/api/uploads', uploadRoutes);

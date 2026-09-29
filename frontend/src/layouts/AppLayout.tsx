@@ -19,6 +19,7 @@ import { Outlet, useNavigate, useRouterState } from '@tanstack/react-router';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../hooks/useLanguage';
 import { useThemeMode } from '../hooks/useThemeMode';
+import { ScrollingBanner } from '../components/ScrollingBanner';
 
 export const AppLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -32,7 +33,8 @@ export const AppLayout = () => {
         { label: t('common.dashboard'), to: '/dashboard' },
         { label: t('common.patients'), to: '/patients' },
         { label: t('common.reports'), to: '/reports' },
-        { label: t('common.reservations'), to: '/reservations' }
+        { label: t('common.reservations'), to: '/reservations' },
+        { label: t('common.banners'), to: '/banners' }
       ]
     : [{ label: t('common.reservations'), to: '/reservations' }] as const;
 
@@ -133,6 +135,8 @@ export const AppLayout = () => {
           </Box>
         </Toolbar>
       </AppBar>
+
+      <ScrollingBanner />
 
       <Drawer
         open={drawerOpen}

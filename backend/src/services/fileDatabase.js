@@ -17,7 +17,8 @@ const defaultDb = {
   users: [],
   patients: [],
   reports: [],
-  reservations: []
+  reservations: [],
+  banners: []
 };
 
 const sortByDateDesc = (a, b, field) => new Date(b[field]).getTime() - new Date(a[field]).getTime();
@@ -296,6 +297,72 @@ export const deletePatient = async (patientId) => {
 
   db.patients = db.patients.filter((item) => item._id !== patientId);
   db.reports = db.reports.filter((item) => item.patientId !== patientId);
+  await writeDb(db);
+  return true;
+};
+
+const sortBanners = (banners) =>
+  banners.slice().sort((a, b) => a.order - b.order || sortByDateDesc(b, a, 'createdAt'));
+
+export const listBanners = async () => {
+  const db = await readDb();
+  return { items: sortBanners(db.banners || []) };
+};
+
+export const getActiveBanners = async () => {
+  const db = await readDb();
+  return { items: sortBanners((db.banners || []).filter((banner) => banner.isActive)) };
+};
+
+export const createBanner = async (payload) => {
+  const db = await readDb();
+  const now = new Date().toISOString();
+  const banner = {
+    _id: randomUUID(),
+    messageEn: payload.messageEn,
+    messageAr: payload.messageAr,
+    isActive: payload.isActive,
+    order: payload.order,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  db.banners = [...(db.banners || []), banner];
+  await writeDb(db);
+  return banner;
+};
+
+export const updateBanner = async (bannerId, payload) => {
+  const db = await readDb();
+  const banners = db.banners || [];
+  const index = banners.findIndex((item) => item._id === bannerId);
+
+  if (index === -1) {
+    return null;
+  }
+
+  const updated = {
+    ...banners[index],
+    ...payload,
+    updatedAt: new Date().toISOString()
+  };
+
+  banners[index] = updated;
+  db.banners = banners;
+  await writeDb(db);
+  return updated;
+};
+
+export const deleteBanner = async (bannerId) => {
+  const db = await readDb();
+  const banners = db.banners || [];
+  const bannerExists = banners.some((item) => item._id === bannerId);
+
+  if (!bannerExists) {
+    return false;
+  }
+
+  db.banners = banners.filter((item) => item._id !== bannerId);
   await writeDb(db);
   return true;
 };

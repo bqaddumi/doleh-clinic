@@ -80,6 +80,16 @@ export interface Report {
   updatedAt?: string;
 }
 
+export interface Banner {
+  _id: string;
+  messageEn: string;
+  messageAr: string;
+  isActive: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Pagination {
   page: number;
   limit: number;

@@ -13,6 +13,7 @@ import { Link as RouterLink } from '@tanstack/react-router';
 import { DataTable } from '../../components/DataTable';
 import { EmptyState } from '../../components/EmptyState';
 import { LoadingScreen } from '../../components/LoadingScreen';
+import { ScrollingBanner } from '../../components/ScrollingBanner';
 import { useLanguage } from '../../hooks/useLanguage';
 import { formatDateTime, getErrorMessage } from '../../lib/format';
 import { TodayReservationQueueItem } from '../../types';
@@ -49,6 +50,7 @@ export const LandingPage = () => {
           'linear-gradient(180deg, rgba(18,39,48,1) 0%, rgba(17,31,39,1) 45%, rgba(246,248,249,1) 45%, rgba(246,248,249,1) 100%)'
       }}
     >
+      <ScrollingBanner />
       <Container maxWidth="xl" sx={{ py: { xs: 4, md: 6 } }}>
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, lg: 7 }}>

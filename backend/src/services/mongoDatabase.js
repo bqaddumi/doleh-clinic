@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { randomUUID } from 'node:crypto';
 import { connectDatabase } from '../config/db.js';
 import { env } from '../config/env.js';
+import { Banner } from '../models/Banner.js';
 import { Patient } from '../models/Patient.js';
 import { Reservation } from '../models/Reservation.js';
 import { Report } from '../models/Report.js';
@@ -388,6 +389,46 @@ export const deletePatient = async (patientId) => {
   }
 
   await Promise.all([Patient.deleteOne({ _id: patientId }), Report.deleteMany({ patientId })]);
+  return true;
+};
+
+export const listBanners = async () => {
+  await ensureConnection();
+  const banners = await Banner.find().sort({ order: 1, createdAt: -1 });
+  return { items: toPlain(banners) };
+};
+
+export const getActiveBanners = async () => {
+  await ensureConnection();
+  const banners = await Banner.find({ isActive: true }).sort({ order: 1, createdAt: -1 });
+  return { items: toPlain(banners) };
+};
+
+export const createBanner = async (payload) => {
+  await ensureConnection();
+  const banner = await Banner.create(payload);
+  return toPlain(banner);
+};
+
+export const updateBanner = async (bannerId, payload) => {
+  await ensureConnection();
+  const banner = await Banner.findByIdAndUpdate(bannerId, payload, {
+    new: true,
+    runValidators: true
+  });
+
+  return toPlain(banner);
+};
+
+export const deleteBanner = async (bannerId) => {
+  await ensureConnection();
+  const banner = await Banner.findById(bannerId);
+
+  if (!banner) {
+    return false;
+  }
+
+  await Banner.deleteOne({ _id: bannerId });
   return true;
 };
 

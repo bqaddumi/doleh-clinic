@@ -12,6 +12,7 @@ const translations = {
       patients: 'Patients',
       reports: 'Reports',
       reservations: 'Reservations',
+      banners: 'News & Offers',
       logout: 'Logout',
       login: 'Login',
       save: 'Save',
@@ -168,6 +169,19 @@ const translations = {
       noReservationsTitle: 'No reservations for today',
       noReservationsDescription: 'Today’s queue is currently empty.'
     },
+    bannersPage: {
+      subtitle: 'Manage the scrolling news and offers banner shown on the landing and main pages.',
+      addBanner: 'Add Banner',
+      editBanner: 'Edit Banner',
+      messageEn: 'Message (English)',
+      messageAr: 'Message (Arabic)',
+      order: 'Order',
+      active: 'Active',
+      inactive: 'Inactive',
+      deleteConfirm: 'Delete this banner?',
+      noBannersTitle: 'No banners yet',
+      noBannersDescription: 'Add a banner to show news or offers on the landing and main pages.'
+    },
     validation: {
       validEmail: 'Valid email is required',
       passwordMin: 'Password must be at least 6 characters',
@@ -179,7 +193,9 @@ const translations = {
       dateRequired: 'Date is required',
       diagnosisRequired: 'Diagnosis is required',
       treatmentPlanRequired: 'Treatment plan is required',
-      sessionNotesRequired: 'Session notes are required'
+      sessionNotesRequired: 'Session notes are required',
+      messageEnRequired: 'English message is required',
+      messageArRequired: 'Arabic message is required'
     }
   },
   ar: {
@@ -189,6 +205,7 @@ const translations = {
       patients: 'المرضى',
       reports: 'التقارير',
       reservations: 'الحجوزات',
+      banners: 'الأخبار والعروض',
       logout: 'تسجيل الخروج',
       login: 'تسجيل الدخول',
       save: 'حفظ',
@@ -345,6 +362,19 @@ const translations = {
       noReservationsTitle: 'لا توجد حجوزات اليوم',
       noReservationsDescription: 'طابور اليوم فارغ حاليًا.'
     },
+    bannersPage: {
+      subtitle: 'إدارة شريط الأخبار والعروض المتحرك الذي يظهر في صفحة الهبوط والصفحة الرئيسية.',
+      addBanner: 'إضافة إعلان',
+      editBanner: 'تعديل الإعلان',
+      messageEn: 'النص (بالإنجليزية)',
+      messageAr: 'النص (بالعربية)',
+      order: 'الترتيب',
+      active: 'مفعّل',
+      inactive: 'غير مفعّل',
+      deleteConfirm: 'هل تريد حذف هذا الإعلان؟',
+      noBannersTitle: 'لا توجد إعلانات بعد',
+      noBannersDescription: 'أضف إعلانًا لعرض الأخبار أو العروض في صفحة الهبوط والصفحة الرئيسية.'
+    },
     validation: {
       validEmail: 'يرجى إدخال بريد إلكتروني صحيح',
       passwordMin: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل',
@@ -356,7 +386,9 @@ const translations = {
       dateRequired: 'التاريخ مطلوب',
       diagnosisRequired: 'التشخيص مطلوب',
       treatmentPlanRequired: 'الخطة العلاجية مطلوبة',
-      sessionNotesRequired: 'ملاحظات الجلسة مطلوبة'
+      sessionNotesRequired: 'ملاحظات الجلسة مطلوبة',
+      messageEnRequired: 'النص الإنجليزي مطلوب',
+      messageArRequired: 'النص العربي مطلوب'
     }
   }
 } as const;
