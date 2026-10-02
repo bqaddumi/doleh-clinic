@@ -79,9 +79,23 @@ export const updateReservationByAdmin = asyncHandler(async (req, res) => {
   res.json(updated);
 });
 
+const SESSION_DURATION_MS = 45 * 60 * 1000;
+
 export const getTodayReservationsOverview = asyncHandler(async (req, res) => {
-  const result = await getTodayReservationsOverviewData();
-  res.json(result);
+  const { todaysReservations } = await getTodayReservationsOverviewData();
+  const now = Date.now();
+
+  const inProgress = todaysReservations.find((reservation) => {
+    const start = new Date(reservation.scheduledAt).getTime();
+    return reservation.status === 'accepted' && start <= now && now < start + SESSION_DURATION_MS;
+  });
+
+  // Public endpoint: never expose patient identity (name, phone, age).
+  res.json({
+    sessionInProgress: Boolean(inProgress),
+    totalToday: todaysReservations.length,
+    upcomingToday: todaysReservations.filter((reservation) => new Date(reservation.scheduledAt).getTime() > now).length
+  });
 });
 
 export const getReservationAvailability = asyncHandler(async (req, res) => {

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/axios';
-import { Pagination, Reservation, ReservationStatus, TodayReservationQueueItem } from '../../types';
+import { Pagination, Reservation, ReservationStatus } from '../../types';
 
 export interface ReservationFilters {
   status?: ReservationStatus | '';
@@ -28,9 +28,10 @@ interface ReservationsResponse {
   pagination: Pagination;
 }
 
-interface TodayReservationsOverview {
-  currentSession: TodayReservationQueueItem | null;
-  todaysReservations: TodayReservationQueueItem[];
+export interface TodayReservationsOverview {
+  sessionInProgress: boolean;
+  totalToday: number;
+  upcomingToday: number;
 }
 
 interface ReservationAvailability {

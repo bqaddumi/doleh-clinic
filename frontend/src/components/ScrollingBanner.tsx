@@ -16,15 +16,17 @@ const scrollFromLeft = keyframes`
 
 export const ScrollingBanner = () => {
   const { data } = useActiveBanners();
-  const { direction } = useLanguage();
+  const { direction, language } = useLanguage();
 
   const text = useMemo(() => {
     if (!data?.length) {
       return '';
     }
 
-    return data.map((banner) => `${banner.messageEn}   |   ${banner.messageAr}`).join('        •        ');
-  }, [data]);
+    return data
+      .map((banner) => (language === 'ar' ? banner.messageAr || banner.messageEn : banner.messageEn || banner.messageAr))
+      .join('        •        ');
+  }, [data, language]);
 
   if (!text) {
     return null;
@@ -39,7 +41,8 @@ export const ScrollingBanner = () => {
         bgcolor: 'primary.main',
         color: 'primary.contrastText',
         overflow: 'hidden',
-        height: 40
+        height: 40,
+        '&:hover span': { animationPlayState: 'paused' }
       }}
     >
       <Typography

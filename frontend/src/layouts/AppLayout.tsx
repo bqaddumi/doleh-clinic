@@ -59,11 +59,11 @@ export const AppLayout = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
         <Toolbar
+          dir="ltr"
           sx={{
             gap: 2,
             flexWrap: { xs: 'wrap', lg: 'nowrap' },
-            justifyContent: 'space-between',
-            flexDirection: direction === 'rtl' ? 'row-reverse' : 'row'
+            justifyContent: 'space-between'
           }}
         >
           <IconButton sx={{ display: { md: 'none' } }} onClick={() => setDrawerOpen(true)}>
@@ -76,7 +76,7 @@ export const AppLayout = () => {
               gap: 1.5,
               flexGrow: 1,
               minWidth: 0,
-              justifyContent: direction === 'rtl' ? 'flex-end' : 'flex-start'
+              justifyContent: 'flex-start'
             }}
           >
             <Box
@@ -101,7 +101,7 @@ export const AppLayout = () => {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: direction === 'rtl' ? 'flex-start' : 'flex-end',
+              justifyContent: 'flex-end',
               flexWrap: 'wrap',
               gap: 1,
               width: { xs: '100%', lg: 'auto' }

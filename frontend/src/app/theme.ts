@@ -41,6 +41,29 @@ export const buildTheme = (direction: 'ltr' | 'rtl', mode: ThemeMode) =>
       }
     },
     components: {
+      MuiStack: {
+        defaultProps: {
+          useFlexGap: true
+        }
+      },
+      MuiChip: {
+        styleOverrides: {
+          icon: {
+            marginLeft: 0,
+            marginRight: 0,
+            marginInlineStart: 5,
+            marginInlineEnd: -6
+          }
+        }
+      },
+      MuiAlert: {
+        styleOverrides: {
+          icon: {
+            marginRight: 0,
+            marginInlineEnd: 12
+          }
+        }
+      },
       MuiCard: {
         styleOverrides: {
           root: {
@@ -59,6 +82,18 @@ export const buildTheme = (direction: 'ltr' | 'rtl', mode: ThemeMode) =>
             borderRadius: 12,
             textTransform: 'none',
             fontWeight: 600
+          },
+          startIcon: {
+            marginLeft: 0,
+            marginRight: 0,
+            marginInlineStart: -4,
+            marginInlineEnd: 8
+          },
+          endIcon: {
+            marginLeft: 0,
+            marginRight: 0,
+            marginInlineStart: 8,
+            marginInlineEnd: -4
           }
         }
       },

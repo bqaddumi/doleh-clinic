@@ -34,16 +34,6 @@ export interface Reservation {
   updatedAt?: string;
 }
 
-export interface TodayReservationQueueItem {
-  _id: string;
-  fullName: string;
-  phone: string;
-  age?: number;
-  scheduledAt: string;
-  status: ReservationStatus;
-  queuePosition: number;
-}
-
 export interface Patient {
   _id: string;
   fullName: string;

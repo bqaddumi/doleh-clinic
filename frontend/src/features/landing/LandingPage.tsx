@@ -1,164 +1,84 @@
-import LoginIcon from '@mui/icons-material/Login';
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Container,
-  Grid,
-  Stack,
-  Typography
-} from '@mui/material';
-import { Link as RouterLink } from '@tanstack/react-router';
-import { DataTable } from '../../components/DataTable';
-import { EmptyState } from '../../components/EmptyState';
-import { LoadingScreen } from '../../components/LoadingScreen';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import { Box, Card, CardContent, Chip, Fab, Stack, Typography } from '@mui/material';
+import { useCallback, useMemo, useState } from 'react';
 import { ScrollingBanner } from '../../components/ScrollingBanner';
 import { useLanguage } from '../../hooks/useLanguage';
-import { formatDateTime, getErrorMessage } from '../../lib/format';
-import { TodayReservationQueueItem } from '../../types';
+import { parseDateValue } from '../../lib/slots';
 import { PublicReservationForm } from '../reservations/components/PublicReservationForm';
-import { useTodayReservationsOverview } from '../reservations/api';
-import { Alert, Chip } from '@mui/material';
-
-const statusColorMap = {
-  pending: 'warning',
-  accepted: 'success',
-  rejected: 'error'
-} as const;
+import { AvailabilitySection } from './components/AvailabilitySection';
+import { ContactSection } from './components/ContactSection';
+import { FaqSection } from './components/FaqSection';
+import { GallerySection } from './components/GallerySection';
+import { HeroSection } from './components/HeroSection';
+import { HowItWorksSection } from './components/HowItWorksSection';
+import { LandingFooter } from './components/LandingFooter';
+import { LandingNavbar, scrollToSection } from './components/LandingNavbar';
+import { Reveal } from './components/Reveal';
+import { Section, SectionHeading, ServicesSection } from './components/ServicesSection';
 
 export const LandingPage = () => {
-  const { t } = useLanguage();
-  const overviewQuery = useTodayReservationsOverview();
+  const { t, language } = useLanguage();
+  const [slot, setSlot] = useState<{ date: string; time: string; nonce: number } | null>(null);
 
-  if (overviewQuery.isLoading) {
-    return <LoadingScreen />;
-  }
+  const handleSelectSlot = useCallback((date: string, time: string) => {
+    setSlot((current) => ({ date, time, nonce: (current?.nonce ?? 0) + 1 }));
+    window.setTimeout(() => scrollToSection('reserve-now'), 150);
+  }, []);
 
-  if (overviewQuery.isError) {
-    return <Alert severity="error">{getErrorMessage(overviewQuery.error)}</Alert>;
-  }
+  const slotLabel = useMemo(() => {
+    if (!slot) {
+      return '';
+    }
 
-  const currentSession = overviewQuery.data?.currentSession || null;
-  const todaysReservations = overviewQuery.data?.todaysReservations || [];
+    const date = new Intl.DateTimeFormat(language === 'ar' ? 'ar' : 'en', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
+    }).format(parseDateValue(slot.date));
+
+    return t('landingPage.slotSelected', { date, time: slot.time });
+  }, [language, slot, t]);
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        background:
-          'linear-gradient(180deg, rgba(18,39,48,1) 0%, rgba(17,31,39,1) 45%, rgba(246,248,249,1) 45%, rgba(246,248,249,1) 100%)'
-      }}
-    >
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <LandingNavbar />
       <ScrollingBanner />
-      <Container maxWidth="xl" sx={{ py: { xs: 4, md: 6 } }}>
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, lg: 7 }}>
-            <Stack spacing={3}>
-              <Box sx={{ color: 'common.white', pt: 2 }}>
-                <Typography variant="h2" sx={{ fontSize: { xs: '2.2rem', md: '3.5rem' }, fontWeight: 800, mb: 2 }}>
-                  {t('landingPage.title')}
-                </Typography>
-                <Typography variant="h6" sx={{ maxWidth: 700, color: 'rgba(255,255,255,0.8)' }}>
-                  {t('landingPage.subtitle')}
-                </Typography>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 3 }}>
-                  <Button component={RouterLink} to="/login" variant="contained" size="large" startIcon={<LoginIcon />}>
-                    {t('common.login')}
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    size="large"
-                    sx={{ color: 'common.white', borderColor: 'rgba(255,255,255,0.35)' }}
-                    onClick={() => document.getElementById('reserve-now')?.scrollIntoView({ behavior: 'smooth' })}
-                  >
-                    {t('reservationsPage.requestReservation')}
-                  </Button>
-                </Stack>
-              </Box>
+      <HeroSection />
+      <ServicesSection />
+      <HowItWorksSection />
+      <AvailabilitySection selectedSlot={slot} onSelectSlot={handleSelectSlot} />
 
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ borderRadius: 4 }}>
-                    <CardContent>
-                      <Typography variant="overline" color="text.secondary">
-                        {t('landingPage.currentSession')}
-                      </Typography>
-                      {currentSession ? (
-                        <Stack spacing={1} sx={{ mt: 1 }}>
-                          <Typography variant="h4">{currentSession.fullName}</Typography>
-                          <Typography color="text.secondary">{formatDateTime(currentSession.scheduledAt)}</Typography>
-                          <Chip label={`${t('landingPage.queueNumber')}: ${currentSession.queuePosition}`} color="primary" sx={{ width: 'fit-content' }} />
-                        </Stack>
-                      ) : (
-                        <Typography sx={{ mt: 1 }}>{t('landingPage.noCurrentSession')}</Typography>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Card sx={{ borderRadius: 4 }}>
-                    <CardContent>
-                      <Typography variant="overline" color="text.secondary">
-                        {t('landingPage.todayQueue')}
-                      </Typography>
-                      <Typography variant="h4" sx={{ mt: 1 }}>
-                        {todaysReservations.length}
-                      </Typography>
-                      <Typography color="text.secondary">{t('landingPage.todayQueueHint')}</Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </Stack>
-          </Grid>
+      <Section id="reserve-now" tinted>
+        <SectionHeading title={t('landingPage.reserveTitle')} subtitle={t('landingPage.reserveSubtitle')} />
+        <Reveal>
+          <Card sx={{ maxWidth: 720, mx: 'auto', borderRadius: 5, boxShadow: '0 16px 48px rgba(31,111,139,0.16)' }}>
+            <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
+              <Stack spacing={2.5}>
+                {slot ? <Chip color="success" icon={<EventAvailableIcon />} label={slotLabel} sx={{ alignSelf: 'flex-start', fontWeight: 700 }} /> : null}
+                <PublicReservationForm presetSlot={slot} />
+                <Typography variant="caption" color="text.secondary">
+                  {t('landingPage.reserveNote')}
+                </Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+        </Reveal>
+      </Section>
 
-          <Grid size={{ xs: 12, lg: 5 }}>
-            <Card id="reserve-now" sx={{ borderRadius: 5 }}>
-              <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-                <Typography variant="h5" gutterBottom>
-                  {t('landingPage.reserveTitle')}
-                </Typography>
-                <Typography color="text.secondary" sx={{ mb: 3 }}>
-                  {t('landingPage.reserveSubtitle')}
-                </Typography>
-                <PublicReservationForm />
-              </CardContent>
-            </Card>
-          </Grid>
+      <GallerySection />
+      <FaqSection />
+      <ContactSection />
+      <LandingFooter />
 
-          <Grid size={{ xs: 12 }}>
-            <Card sx={{ borderRadius: 5 }}>
-              <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-                <Typography variant="h5" gutterBottom>
-                  {t('landingPage.todaysReservations')}
-                </Typography>
-                {todaysReservations.length ? (
-                  <DataTable<TodayReservationQueueItem>
-                    rowKey={(row) => row._id}
-                    rows={todaysReservations}
-                    columns={[
-                      { key: 'queue', header: t('landingPage.queueNumber'), render: (row) => row.queuePosition },
-                      { key: 'name', header: t('patientsPage.fullName'), render: (row) => row.fullName },
-                      { key: 'time', header: t('reservationsPage.reservationDateTime'), render: (row) => formatDateTime(row.scheduledAt) },
-                      {
-                        key: 'status',
-                        header: t('common.status'),
-                        render: (row) => <Chip size="small" color={statusColorMap[row.status]} label={t(`common.${row.status}` as const)} />
-                      }
-                    ]}
-                  />
-                ) : (
-                  <EmptyState
-                    title={t('landingPage.noReservationsTitle')}
-                    description={t('landingPage.noReservationsDescription')}
-                  />
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Container>
+      <Fab
+        variant="extended"
+        color="primary"
+        onClick={() => scrollToSection('reserve-now')}
+        sx={{ display: { xs: 'inline-flex', md: 'none' }, position: 'fixed', bottom: 20, insetInlineEnd: 20, zIndex: 1200 }}
+      >
+        <EventAvailableIcon sx={{ marginInlineEnd: 1 }} />
+        {t('landingPage.navBook')}
+      </Fab>
     </Box>
   );
 };

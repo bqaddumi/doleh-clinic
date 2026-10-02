@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import DarkModeOutlinedIcon from '@mui/icons-material/DarkModeOutlined';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import LaunchIcon from '@mui/icons-material/Launch';
 import { Alert, Box, Button, Card, CardContent, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
@@ -125,6 +126,9 @@ export const LoginPage = () => {
                 </Typography>
               </Stack>
               <Stack spacing={1}>
+                <Button startIcon={<LaunchIcon />} onClick={() => navigate({ to: '/' })}>
+                  {t('common.visitWebsite')}
+                </Button>
                 <Button
                   startIcon={mode === 'light' ? <DarkModeOutlinedIcon /> : <LightModeOutlinedIcon />}
                   onClick={toggleMode}

@@ -1,6 +1,7 @@
 import AddIcon from '@mui/icons-material/Add';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import GroupIcon from '@mui/icons-material/Group';
+import LaunchIcon from '@mui/icons-material/Launch';
 import {
   Alert,
   Button,
@@ -71,13 +72,22 @@ export const DashboardPage = () => {
               gridTemplateColumns: {
                 xs: '1fr',
                 sm: 'repeat(2, minmax(0, 1fr))',
-                lg: 'repeat(2, max-content)'
+                lg: 'repeat(3, max-content)'
               },
               gap: 1.25,
               width: '100%',
               justifyContent: { lg: direction === 'rtl' ? 'flex-start' : 'flex-end' }
             }}
           >
+            <Button
+              variant="outlined"
+              startIcon={<LaunchIcon />}
+              onClick={() => navigate({ to: '/' })}
+              size="medium"
+              sx={{ minHeight: 44 }}
+            >
+              {t('common.visitWebsite')}
+            </Button>
             <Button
               variant="contained"
               startIcon={<AddIcon />}

@@ -6,6 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useLanguage } from '../../../hooks/useLanguage';
 import { getErrorMessage } from '../../../lib/format';
+import { formatDateValue, getUnavailableTimes, parseDateValue } from '../../../lib/slots';
 import { ReservationPayload, useCreateReservation, usePublicCreateReservation, useReservationAvailability, useReservationDateOptions } from '../api';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -13,19 +14,12 @@ interface PublicReservationFormProps {
   compact?: boolean;
   mode?: 'public' | 'admin';
   onSuccess?: () => void;
+  presetSlot?: { date: string; time: string; nonce: number } | null;
 }
-
-const formatDateValue = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-const parseDateValue = (value: string) => {
-  const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, month - 1, day);
-};
 
 const getMonthKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth()).padStart(2, '0')}`;
 
-export const PublicReservationForm = ({ compact = false, mode = 'public', onSuccess }: PublicReservationFormProps) => {
+export const PublicReservationForm = ({ compact = false, mode = 'public', onSuccess, presetSlot }: PublicReservationFormProps) => {
   const { language, t } = useLanguage();
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const publicCreateReservation = usePublicCreateReservation();
@@ -96,22 +90,7 @@ export const PublicReservationForm = ({ compact = false, mode = 'public', onSucc
       return new Set<string>();
     }
 
-    const gapMs = availabilityQuery.data.gapMinutes * 60 * 1000;
-    const reservedTimes = availabilityQuery.data.reservedSlots.map((slot) => new Date(slot).getTime());
-    const now = new Date();
-
-    return new Set(
-      timeOptions.filter((time) => {
-        const slotDate = new Date(`${selectedDate}T${time}`);
-        const slotTime = slotDate.getTime();
-
-        if (slotDate <= now) {
-          return true;
-        }
-
-        return reservedTimes.some((reservedTime) => Math.abs(reservedTime - slotTime) < gapMs);
-      })
-    );
+    return getUnavailableTimes(selectedDate, timeOptions, availabilityQuery.data);
   }, [availabilityQuery.data, selectedDate, timeOptions]);
 
   useEffect(() => {
@@ -119,6 +98,13 @@ export const PublicReservationForm = ({ compact = false, mode = 'public', onSucc
       form.setValue('scheduledAt', '');
     }
   }, [form, selectedDate]);
+
+  useEffect(() => {
+    if (presetSlot) {
+      setSelectedDate(presetSlot.date);
+      form.setValue('scheduledAt', `${presetSlot.date}T${presetSlot.time}`, { shouldValidate: true });
+    }
+  }, [form, presetSlot]);
 
   useEffect(() => {
     const monthDate = selectedDate ? parseDateValue(selectedDate) : firstOptionMonth;
